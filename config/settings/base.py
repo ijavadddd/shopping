@@ -18,7 +18,7 @@ if READ_DOT_ENV_FILE:
 # GENERAL
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#debug
-DEBUG = env.bool("DJANGO_DEBUG", False)
+DEBUG = env.bool("DJANGO_DEBUG", True)
 # Local time zone. Choices are
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # though not all of them may be available with every OS.
@@ -87,6 +87,7 @@ LOCAL_APPS = [
     "shopping.users",
     # Your stuff: custom apps go here
     "shopping.product",
+    "shopping.order",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -293,7 +294,9 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.TokenAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticatedOrReadOnly",
+    ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 

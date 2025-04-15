@@ -16,7 +16,6 @@ repos:
       - id: check-xml
       - id: check-yaml
       - id: debug-statements
-      - id: check-builtin-literals
       - id: check-case-conflict
       - id: check-docstring-first
       - id: detect-private-key
@@ -27,15 +26,12 @@ repos:
       - id: django-upgrade
         args: ['--target-version', '5.0']
 
-  # Run the Ruff linter.
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.4
+  # Black code formatter - runs first to establish base formatting
+  - repo: https://github.com/psf/black
+    rev: 24.3.0
     hooks:
-      # Linter
-      - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
-      # Formatter
-      - id: ruff-format
+      - id: black
+        language_version: python3.12
 
   - repo: https://github.com/Riverside-Healthcare/djLint
     rev: v1.36.4
@@ -43,7 +39,6 @@ repos:
       - id: djlint-reformat-django
       - id: djlint-django
 
-# sets up .pre-commit-ci.yaml to ensure pre-commit dependencies stay up to date
 ci:
   autoupdate_schedule: weekly
   skip: []

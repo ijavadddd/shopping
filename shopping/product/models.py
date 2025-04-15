@@ -1,4 +1,5 @@
 from django.db import models
+
 from shopping.users.models import User
 
 
@@ -7,10 +8,16 @@ class Category(models.Model):
     slug = models.SlugField(unique=True)
     description = models.TextField(blank=True)
     parent = models.ForeignKey(
-        "self", on_delete=models.CASCADE, null=True, blank=True, related_name="children"
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="children",
     )
     image = models.ImageField(
-        upload_to="images/category_images/", blank=True, null=True
+        upload_to="images/category_images/",
+        blank=True,
+        null=True,
     )
 
     class Meta:
@@ -26,10 +33,10 @@ class Product(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discounted_price = models.DecimalField(
-        max_digits=10, decimal_places=2, blank=True, null=True
-    )
-    category = models.ForeignKey(
-        Category, related_name="products", on_delete=models.CASCADE
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
     )
     stock = models.PositiveIntegerField()
     available = models.BooleanField(default=True)
@@ -42,9 +49,31 @@ class Product(models.Model):
         return self.name
 
 
+class ProductCategory(models.Model):
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.CASCADE,
+        related_name="products",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="categories",
+    )
+    depth = models.PositiveIntegerField()
+
+    class Meta:
+        unique_together = ("category", "product")
+
+    def __str__(self):
+        return self.category.name
+
+
 class ProductImage(models.Model):
     product = models.ForeignKey(
-        Product, related_name="images", on_delete=models.CASCADE
+        Product,
+        related_name="images",
+        on_delete=models.CASCADE,
     )
     image = models.ImageField(upload_to="images/product_images/")
     is_featured = models.BooleanField(default=False)
@@ -55,7 +84,9 @@ class ProductImage(models.Model):
 
 class Variation(models.Model):
     product = models.ForeignKey(
-        Product, related_name="variations", on_delete=models.CASCADE
+        Product,
+        related_name="variations",
+        on_delete=models.CASCADE,
     )
     name = models.CharField(max_length=100)  # e.g., "Color", "Size"
     value = models.CharField(max_length=100)  # e.g., "Red", "XL"
@@ -68,7 +99,9 @@ class Variation(models.Model):
 
 class Review(models.Model):
     product = models.ForeignKey(
-        Product, related_name="reviews", on_delete=models.CASCADE
+        Product,
+        related_name="reviews",
+        on_delete=models.CASCADE,
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     rating = models.PositiveSmallIntegerField(choices=[(i, i) for i in range(1, 6)])

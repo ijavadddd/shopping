@@ -44,6 +44,7 @@ urlpatterns += [
         name="api-docs",
     ),
     path("api/product/", include("shopping.product.api.urls", namespace="product")),
+    path("api/order/", include("shopping.order.api.urls", namespace="order")),
 ]
 
 if settings.DEBUG:
