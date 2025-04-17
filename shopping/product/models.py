@@ -78,6 +78,9 @@ class ProductImage(models.Model):
     image = models.ImageField(upload_to="images/product_images/")
     is_featured = models.BooleanField(default=False)
 
+    class Meta:
+        ordering = ("-is_featured",)
+
     def __str__(self):
         return f"Image for {self.product.name}"
 

@@ -1,8 +1,11 @@
 from django.urls import path
 
-from shopping.order.api.views import OrderListAPIView
+from shopping.order.api.views import OrderAPIViewSet
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+router.register(r"v1", OrderAPIViewSet, basename="order")
+
 
 app_name = "order"
-urlpatterns = [
-    path("v1/list/", OrderListAPIView.as_view(), name="order_list"),
-]
+urlpatterns = [] + router.urls

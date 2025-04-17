@@ -79,18 +79,3 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = "__all__"
-
-
-class OrderProductSerializer(serializers.ModelSerializer):
-    vendor = VendorSerializer(many=False, read_only=True)
-    category = CategorySerializer(many=True, read_only=True)
-    image = ImageSerializer(source="images.first", many=False, read_only=True)
-
-    class Meta:
-        model = Product
-        fields = "__all__"
-
-    def get_image(self, obj):
-        # Access the prefetched featured_images attribute
-        featured_images = getattr(obj, "featured_images", [])
-        return ImageSerializer(featured_images, many=True).data
