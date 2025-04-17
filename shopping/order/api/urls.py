@@ -1,5 +1,3 @@
-from django.urls import path
-
 from shopping.order.api.views import OrderAPIViewSet
 from rest_framework.routers import DefaultRouter
 
