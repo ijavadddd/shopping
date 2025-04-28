@@ -4,3 +4,8 @@ GET http://127.0.0.1:8000/api/product/v1/list/
 
 ###
 GET http://127.0.0.1:8000/api/product/v1/retrieve/1
+
+###
+# filter by attribute(get products have attribute matrial is wood)
+
+GET http://127.0.0.1:8000/api/product/v1/list/?matrial=wood

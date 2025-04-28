@@ -30,6 +30,28 @@ class ProductFilter(filters.FilterSet):
             "name",
         ]
 
+    def filter_queryset(self, queryset):
+        """
+        Override filter_queryset to handle dynamic attribute filters
+        """
+        queryset = super().filter_queryset(queryset)
+
+        # Get all attribute type slugs from the request
+        attribute_filters = {
+            key: value
+            for key, value in self.request.query_params.items()
+            if key not in self.filters  # Exclude predefined filters
+        }
+
+        # Apply attribute filters
+        for attr_slug, value_slug in attribute_filters.items():
+            queryset = queryset.filter(
+                attributes__attribute__attribute_type__slug=attr_slug,
+                attributes__attribute__slug=value_slug,
+            ).distinct()
+
+        return queryset
+
 
 class ProductListAPIView(ListAPIView):
     serializer_class = ProductListSerializer
@@ -38,21 +60,24 @@ class ProductListAPIView(ListAPIView):
 
     def get_queryset(self):
         queryset = Product.objects.prefetch_related(
-            Prefetch("categories", queryset=ProductCategory.objects.order_by("depth")),
-            Prefetch(
-                "images",
-                queryset=ProductImage.objects.order_by("-is_featured"),
-                to_attr="image",
-            ),
             Prefetch(
                 "attributes",
-                queryset=ProductAttribute.objects.filter(price_modifier__gt=0).order_by(
-                    "-stock"
+                queryset=ProductAttribute.objects.select_related(
+                    "attribute", "attribute__attribute_type"
                 ),
             ),
-            "attributes__attribute",
-            "attributes__attribute__attribute_type",
-        ).defer("vendor")
+            Prefetch(
+                "categories",
+                queryset=ProductCategory.objects.select_related("category").order_by(
+                    "-depth"
+                ),
+            ),
+            Prefetch(
+                "images",
+                queryset=ProductImage.objects.filter(is_featured=True),
+                to_attr="image",
+            ),
+        ).select_related("vendor")
         return queryset
 
 
