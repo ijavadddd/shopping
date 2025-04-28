@@ -1,3 +1,13 @@
+POST http://127.0.0.1:8000/api/auth-token/
+Content-Type: application/json
+
+{
+    "username": "1@11.com",
+    "password": "1"
+}
+
+
+###
 GET http://127.0.0.1:8000/api/product/v1/list/
 # retrieve list of all products with thier category child
 # can search, filter fields
@@ -9,3 +19,42 @@ GET http://127.0.0.1:8000/api/product/v1/retrieve/1
 # filter by attribute(get products have attribute matrial is wood)
 
 GET http://127.0.0.1:8000/api/product/v1/list/?matrial=wood
+
+
+###
+
+### Get Orders (Requires Authentication)
+GET http://127.0.0.1:8000/api/order/v1/
+Authorization: Token 0188a8aa551da1424c43be3df067987446aaa99d
+Accept: application/json
+
+### Create Order (Requires Authentication)
+POST http://127.0.0.1:8000/api/order/v1/
+Authorization: Token your_auth_token_here
+Content-Type: application/json
+Accept: application/json
+
+{
+    "items": [
+        {
+            "product": 1,
+            "attribute": 1,
+            "quantity": 2,
+            "price": 29.99
+        }
+    ],
+    "shipping": {
+        "address": "123 Main St",
+        "city": "New York",
+        "state": "NY",
+        "zip_code": "10001",
+        "country": "USA"
+    },
+    "payments": [
+        {
+            "amount": 59.98,
+            "payment_method": "credit_card",
+            "transaction_id": "txn_123456"
+        }
+    ]
+}

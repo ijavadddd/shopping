@@ -1,18 +1,9 @@
 from rest_framework import serializers
 
 from shopping.order.models import Order, Payment, Product, Shipping, Refund, OrderItem
-from shopping.product.api.serializers import VendorSerializer, ProductSerializer
+from shopping.product.api.serializers import VendorSerializer
 from shopping.product.models import Product, ProductAttribute
 from django.db import transaction
-
-
-class OrderItemSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
-    # attribute = ProductAttributeSerializer(read_only=True)
-
-    class Meta:
-        model = OrderItem
-        fields = ["id", "product", "attribute", "quantity", "price"]
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -33,11 +24,56 @@ class RefundSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class ProductSerializer(serializers.ModelSerializer):
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "price",
+            "discounted_price",
+            "stock",
+            "available",
+            "image",
+        ]
+
+    def get_image(self, obj):
+        request = self.context.get("request")
+        # Use prefetched data if available, otherwise fallback to query
+        image = getattr(obj, "image", {})[0]
+        if image is None:
+            image = obj.images.order_by("-is_featured").first()
+        if image.image and hasattr(image.image, "url"):
+            return (
+                request.build_absolute_uri(image.image.url)
+                if request
+                else image.image.url
+            )
+        return None
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    class VariationSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = ProductAttribute
+            fields = ["id", "value", "attribute_type__name"]
+
+    product = ProductSerializer(read_only=True)
+    refunds = RefundSerializer(many=True, read_only=True)
+    variation = VariationSerializer(read_only=True, source="attributes.attribute")
+
+    class Meta:
+        model = OrderItem
+        fields = ["id", "product", "quantity", "price", "refunds", "variation"]
+
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     payments = PaymentSerializer(many=True, read_only=True)
     shipping = ShippingSerializer(read_only=True)
-    refund = RefundSerializer(many=True, read_only=True)
 
     class Meta:
         model = Order

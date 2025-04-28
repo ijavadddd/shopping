@@ -57,28 +57,43 @@ class ProductListAPIView(ListAPIView):
     serializer_class = ProductListSerializer
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = ProductFilter
+    queryset = Product.objects.all()  # Define base queryset
 
     def get_queryset(self):
-        queryset = Product.objects.prefetch_related(
+        # Get the filtered queryset first
+        queryset = super().get_queryset()
+        prefetch_args = []
+
+        prefetch_args.append(
             Prefetch(
                 "attributes",
                 queryset=ProductAttribute.objects.select_related(
                     "attribute", "attribute__attribute_type"
                 ),
-            ),
+            )
+        )
+
+        prefetch_args.append(
             Prefetch(
                 "categories",
                 queryset=ProductCategory.objects.select_related("category").order_by(
                     "-depth"
                 ),
-            ),
+            )
+        )
+
+        prefetch_args.append(
             Prefetch(
                 "images",
                 queryset=ProductImage.objects.filter(is_featured=True),
                 to_attr="image",
-            ),
-        ).select_related("vendor")
-        return queryset
+            )
+        )
+
+        if prefetch_args:
+            queryset = queryset.prefetch_related(*prefetch_args)
+
+        return queryset.select_related("vendor")
 
 
 class ProductRetrieveAPIView(RetrieveAPIView):
