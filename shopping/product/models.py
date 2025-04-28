@@ -85,19 +85,67 @@ class ProductImage(models.Model):
         return f"Image for {self.product.name}"
 
 
-class Variation(models.Model):
-    product = models.ForeignKey(
-        Product,
-        related_name="variations",
-        on_delete=models.CASCADE,
+class AttributeType(models.Model):
+    """
+    Defines types of attributes (Color, Size, Material, etc.)
+    """
+
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
+    display_type = models.CharField(
+        max_length=20,
+        choices=[
+            ("dropdown", "Dropdown"),
+            ("color_swatch", "Color Swatch"),
+            ("text", "Text"),
+        ],
+        default="dropdown",
     )
-    name = models.CharField(max_length=100)  # e.g., "Color", "Size"
-    value = models.CharField(max_length=100)  # e.g., "Red", "XL"
-    price_modifier = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
-    stock = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ["name"]
 
     def __str__(self):
-        return f"{self.product.name} - {self.name}: {self.value}"
+        return self.name
+
+
+class AttributeValue(models.Model):
+    """
+    Possible values for attributes
+    """
+
+    attribute_type = models.ForeignKey(
+        AttributeType, related_name="values", on_delete=models.CASCADE
+    )
+    value = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100)
+    hex_code = models.CharField(max_length=8, blank=True, null=True)
+
+    class Meta:
+        unique_together = ("attribute_type", "slug")
+        ordering = ["attribute_type", "value"]
+
+    def __str__(self):
+        return f"{self.attribute_type.name}: {self.value}"
+
+
+class ProductAttribute(models.Model):
+    """
+    Links attributes to products with price modifiers
+    """
+
+    product = models.ForeignKey(
+        "Product", related_name="attributes", on_delete=models.CASCADE
+    )
+    attribute = models.ForeignKey(AttributeValue, on_delete=models.CASCADE)
+    price_modifier = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    stock = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ("product", "attribute")
+
+    def __str__(self):
+        return f"{self.product.name} - {self.attribute}"
 
 
 class Review(models.Model):

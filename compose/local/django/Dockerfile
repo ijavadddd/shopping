@@ -11,15 +11,19 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # dependencies for building Python packages
   build-essential \
   # psycopg dependencies
-  libpq-dev
+  libpq-dev \
+  curl
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .
+COPY pyproject.toml .
+COPY uv.lock .
 
 # Create Python Dependency and Sub-Dependency Wheels.
-RUN pip wheel --wheel-dir /usr/src/app/wheels  \
-  -r ${BUILD_ENVIRONMENT}.txt
-
+RUN /root/.cargo/bin/uv pip compile ${BUILD_ENVIRONMENT}.txt --generate-wheels --wheel-dir=/usr/src/app/wheels
 
 # Python 'run' stage
 FROM python AS python-run-stage
@@ -33,7 +37,6 @@ ENV BUILD_ENV=${BUILD_ENVIRONMENT}
 
 WORKDIR ${APP_HOME}
 
-
 # devcontainer dependencies and utils
 RUN apt-get update && apt-get install --no-install-recommends -y \
   sudo git bash-completion nano ssh
@@ -44,7 +47,6 @@ RUN groupadd --gid 1000 dev-user \
   && echo dev-user ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/dev-user \
   && chmod 0440 /etc/sudoers.d/dev-user
 
-
 # Install required system dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
   # psycopg dependencies
@@ -52,16 +54,20 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   wait-for-it \
   # Translations dependencies
   gettext \
+  curl \
   # cleaning up unused files
   && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
   && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # All absolute dir copies ignore workdir instruction. All relative dir copies are wrt to the workdir instruction
 # copy python dependency wheels from python-build-stage
 COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
 
 # use wheels to install python dependencies
-RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
+RUN /root/.cargo/bin/uv pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
   && rm -rf /wheels/
 
 COPY ./compose/production/django/entrypoint /entrypoint
@@ -71,8 +77,6 @@ RUN chmod +x /entrypoint
 COPY ./compose/local/django/start /start
 RUN sed -i 's/\r$//g' /start
 RUN chmod +x /start
-
-
 
 # copy application code to WORKDIR
 COPY . ${APP_HOME}

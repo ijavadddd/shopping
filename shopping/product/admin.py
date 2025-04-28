@@ -1,13 +1,26 @@
 from django.contrib import admin
 
-from shopping.product.models import Category
-from shopping.product.models import Product
-from shopping.product.models import ProductCategory
-from shopping.product.models import ProductImage
-from shopping.product.models import Variation
+from shopping.product.models import (
+    Category,
+    ProductCategory,
+    ProductImage,
+    Product,
+    AttributeType,
+    AttributeValue,
+    ProductAttribute,
+    Review,
+)
 
 
-@admin.register(Category, Variation, ProductCategory, ProductImage)
+@admin.register(
+    Category,
+    ProductCategory,
+    ProductImage,
+    AttributeType,
+    AttributeValue,
+    ProductAttribute,
+    Review,
+)
 class WholeTestAdmin(admin.ModelAdmin):
     pass
 

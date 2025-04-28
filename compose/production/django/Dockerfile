@@ -1,4 +1,3 @@
-
 # define an alias for the specific python version used in this file.
 FROM docker.io/python:3.12.9-slim-bookworm AS python
 
@@ -12,16 +11,20 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
   # dependencies for building Python packages
   build-essential \
   # psycopg dependencies
-  libpq-dev
+  libpq-dev \
+  curl
 
+# Install uv (only needed in build stage)
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    ln -s /root/.local/bin/uv /usr/local/bin/uv
 
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .
+COPY pyproject.toml .
+COPY uv.lock .
 
 # Create Python Dependency and Sub-Dependency Wheels.
-RUN pip wheel --wheel-dir /usr/src/app/wheels  \
-  -r ${BUILD_ENVIRONMENT}.txt
-
+RUN uv pip compile ${BUILD_ENVIRONMENT}.txt --generate-wheels --wheel-dir=/usr/src/app/wheels
 
 # Python 'run' stage
 FROM python AS python-run-stage
@@ -37,7 +40,6 @@ WORKDIR ${APP_HOME}
 
 RUN addgroup --system django \
   && adduser --system --ingroup django django
-
 
 # Install required system dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
@@ -55,20 +57,17 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # copy python dependency wheels from python-build-stage
 COPY --from=python-build-stage /usr/src/app/wheels  /wheels/
 
-# use wheels to install python dependencies
+# use wheels to install python dependencies (no need for uv in run stage)
 RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
   && rm -rf /wheels/
-
 
 COPY --chown=django:django ./compose/production/django/entrypoint /entrypoint
 RUN sed -i 's/\r$//g' /entrypoint
 RUN chmod +x /entrypoint
 
-
 COPY --chown=django:django ./compose/production/django/start /start
 RUN sed -i 's/\r$//g' /start
 RUN chmod +x /start
-
 
 # copy application code to WORKDIR
 COPY --chown=django:django . ${APP_HOME}

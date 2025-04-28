@@ -1,34 +1,18 @@
 from rest_framework import serializers
 
-from shopping.order.models import Order, Payment, Product, Shipping, Refund, Variation
-from shopping.order.models import OrderItem
-from shopping.product.api.serializers import VendorSerializer, ImageSerializer
-from shopping.product.api.serializers import ProductVariationSerializer
+from shopping.order.models import Order, Payment, Product, Shipping, Refund, OrderItem
+from shopping.product.api.serializers import VendorSerializer, ProductSerializer
+from shopping.product.models import Product, ProductAttribute
 from django.db import transaction
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    class OrderProductSerializer(serializers.ModelSerializer):
-        vendor = VendorSerializer(many=False, read_only=True)
-        image = ImageSerializer(source="images.first", many=False, read_only=True)
-
-        class Meta:
-            model = Product
-            fields = "__all__"
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            # Make all fields optional except id
-            for field_name, field in self.fields.items():
-                if field_name != "id":
-                    field.required = False
-
-    product = OrderProductSerializer()
-    variation = ProductVariationSerializer()
+    product = ProductSerializer(read_only=True)
+    # attribute = ProductAttributeSerializer(read_only=True)
 
     class Meta:
         model = OrderItem
-        exclude = ("order",)
+        fields = ["id", "product", "attribute", "quantity", "price"]
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -60,16 +44,19 @@ class OrderSerializer(serializers.ModelSerializer):
         exclude = ("user",)
 
 
+class OrderItemCreateSerializer(serializers.ModelSerializer):
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    attribute = serializers.PrimaryKeyRelatedField(
+        queryset=ProductAttribute.objects.all(), required=False, allow_null=True
+    )
+
+    class Meta:
+        model = OrderItem
+        fields = ["product", "attribute", "quantity", "price"]
+
+
 class OrderCreateSerializer(serializers.ModelSerializer):
-    class ItemSerializer(serializers.ModelSerializer):
-        product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
-        variation = serializers.PrimaryKeyRelatedField(queryset=Variation.objects.all())
-
-        class Meta:
-            model = OrderItem
-            exclude = ("order",)  # Exclude order field as it will be set automatically
-
-    items = ItemSerializer(many=True)
+    items = OrderItemCreateSerializer(many=True)
     payments = PaymentSerializer(many=True)
     shipping = ShippingSerializer()
 
@@ -97,14 +84,11 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             # Create order items
             for item_data in items_data:
                 OrderItem.objects.create(
-                    order=order,  # Set the order relationship here
+                    order=order,
                     product=item_data["product"],
-                    variation=item_data["variation"],
-                    **{
-                        k: v
-                        for k, v in item_data.items()
-                        if k not in ["product", "variation"]
-                    },
+                    attribute=item_data.get("attribute"),
+                    quantity=item_data["quantity"],
+                    price=item_data["price"],
                 )
 
             return order

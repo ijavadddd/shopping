@@ -4,9 +4,9 @@ from django.core.validators import MaxValueValidator
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 
-from shopping.product.models import Product
-from shopping.product.models import Variation
+from shopping.product.models import Product, ProductAttribute
 from shopping.users.models import User
 
 
@@ -19,7 +19,7 @@ class Order(models.Model):
         CANCELLED = "canceled"
         REFUNDED = "refunded"
 
-    user = models.ForeignKey(User, related_name="orders", on_delete=models.PROTECT)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     order_number = models.CharField(max_length=20, unique=True)
     status = models.CharField(
         max_length=20,
@@ -32,17 +32,18 @@ class Order(models.Model):
     note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return self.order_number
+        return f"Order {self.id} by {self.user.username}"
 
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    variation = models.ForeignKey(
-        Variation,
-        on_delete=models.SET_NULL,
+    attribute = models.ForeignKey(
+        ProductAttribute,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
     )
@@ -50,9 +51,7 @@ class OrderItem(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return (
-            f"{self.quantity} x {self.product.name} in order {self.order.order_number}"
-        )
+        return f"{self.quantity} x {self.product.name} in order {self.order.id}"
 
 
 class Payment(models.Model):

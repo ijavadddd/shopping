@@ -1,62 +1,42 @@
 from rest_framework import serializers
-
-from shopping.cart.models import Cart, Item
-from shopping.order.api.serializers import (
-    VendorSerializer,
-    ImageSerializer,
-    ProductVariationSerializer,
-)
-from shopping.order.models import Product, Variation
-from django.db.models import F
 from django.db import transaction
 
+from shopping.cart.models import Cart, CartItem
 from shopping.product.api.serializers import ProductSerializer
+from shopping.product.models import Product, ProductAttribute
+from django.db.models import F
 
 
-class ItemSerializer(serializers.ModelSerializer):
-    class ProductSerializer(serializers.ModelSerializer):
-        vendor = VendorSerializer(many=False, read_only=True)
-        image = ImageSerializer(source="images.first", many=False, read_only=True)
-
-        class Meta:
-            model = Product
-            fields = "__all__"
-
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-            # Make all fields optional except id
-            for field_name, field in self.fields.items():
-                if field_name != "id":
-                    field.required = False
-
-    product = ProductSerializer()
-    variation = ProductVariationSerializer()
+class CartItemSerializer(serializers.ModelSerializer):
+    product = ProductSerializer(read_only=True)
+    # attribute = ProductAttributeSerializer(read_only=True)
 
     class Meta:
-        model = Item
-        fields = "__all__"
+        model = CartItem
+        fields = ["id", "product", "attribute", "quantity"]
+
+
+class CartItemCreateSerializer(serializers.ModelSerializer):
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    attribute = serializers.PrimaryKeyRelatedField(
+        queryset=ProductAttribute.objects.all(), required=False, allow_null=True
+    )
+
+    class Meta:
+        model = CartItem
+        fields = ["product", "attribute", "quantity"]
 
 
 class CartSerializer(serializers.ModelSerializer):
-    items = ItemSerializer(many=True, read_only=True)
+    items = CartItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = Cart
         exclude = ("user",)
 
 
-class CartItemSerializer(serializers.ModelSerializer):
-    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
-    variation = serializers.PrimaryKeyRelatedField(queryset=Variation.objects.all())
-
-    class Meta:
-        model = Item
-        exclude = ("cart",)
-
-
 class CartCreateSerializer(serializers.ModelSerializer):
-
-    items = CartItemSerializer(many=True)
+    items = CartItemCreateSerializer(many=True)
 
     class Meta:
         model = Cart
@@ -66,23 +46,20 @@ class CartCreateSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop("items", [])
         cart, created = Cart.objects.get_or_create(**validated_data)
 
-        with transaction.atomic():  # Ensure all operations succeed or fail together
+        with transaction.atomic():
             for item_data in items_data:
-                # First try to get existing item
                 try:
-                    item_instance = Item.objects.get(
+                    item_instance = CartItem.objects.get(
                         product=item_data["product"],
-                        variation=item_data["variation"],
+                        attribute=item_data.get("attribute"),
                         cart=cart,
                     )
-                    # Update existing item
                     item_instance.quantity = F("quantity") + item_data["quantity"]
                     item_instance.save()
-                except Item.DoesNotExist:
-                    # Create new item
-                    Item.objects.create(
+                except CartItem.DoesNotExist:
+                    CartItem.objects.create(
                         product=item_data["product"],
-                        variation=item_data["variation"],
+                        attribute=item_data.get("attribute"),
                         cart=cart,
                         quantity=item_data["quantity"],
                     )

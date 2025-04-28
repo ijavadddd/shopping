@@ -1,0 +1,6 @@
+GET http://127.0.0.1:8000/api/product/v1/list/
+# retrieve list of all products with thier category child
+# can search, filter fields
+
+###
+GET http://127.0.0.1:8000/api/product/v1/retrieve/1
