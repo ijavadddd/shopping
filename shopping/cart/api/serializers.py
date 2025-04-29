@@ -2,9 +2,9 @@ from rest_framework import serializers
 from django.db import transaction
 
 from shopping.cart.models import Cart, CartItem
-from shopping.product.api.serializers import ProductSerializer
 from shopping.product.models import Product, ProductAttribute
 from django.db.models import F
+from shopping.order.api.serializers import ProductSerializer
 
 
 class CartItemSerializer(serializers.ModelSerializer):
@@ -13,7 +13,7 @@ class CartItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CartItem
-        fields = ["id", "product", "attribute", "quantity"]
+        fields = ["id", "product", "variation", "quantity"]
 
 
 class CartItemCreateSerializer(serializers.ModelSerializer):
@@ -46,20 +46,23 @@ class CartCreateSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop("items", [])
         cart, created = Cart.objects.get_or_create(**validated_data)
 
-        if "items" in validated_data:
-            items_data = validated_data.pop("items")
-            with transaction.atomic():
-                for item in items_data:
-                    try:
-                        item_instance = CartItem.objects.get(
-                            product=item["product"],
-                            variation=item.get("variation"),
-                            cart=cart,
-                        )
-                        item_instance.quantity = F("quantity") + item["quantity"]
-                        item_instance.save()
-                    except CartItem.DoesNotExist:
-                        CartItem.objects.create(**item, cart=cart)
+        with transaction.atomic():
+            for item in items_data:
+                try:
+                    item_instance = CartItem.objects.get(
+                        product=item["product"],
+                        variation=item.get("variation"),
+                        cart=cart,
+                    )
+                    item_instance.quantity = F("quantity") + item["quantity"]
+                    item_instance.save()
+                except CartItem.DoesNotExist:
+                    CartItem.objects.create(
+                        product=item["product"],
+                        variation=item.get("variation"),
+                        cart=cart,
+                        quantity=item["quantity"],
+                    )
         return cart
 
     def update(self, instance, validated_data):
@@ -76,6 +79,11 @@ class CartCreateSerializer(serializers.ModelSerializer):
                         item_instance.quantity = F("quantity") + item["quantity"]
                         item_instance.save()
                     except CartItem.DoesNotExist:
-                        CartItem.objects.create(**item, cart=instance)
+                        CartItem.objects.create(
+                            product=item["product"],
+                            variation=item.get("variation"),
+                            cart=instance,
+                            quantity=item["quantity"],
+                        )
 
         return instance

@@ -24,28 +24,13 @@ class CartAPIView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_object(self):
         cart, _ = Cart.objects.get_or_create(user=self.request.user)
+        cart = Cart.objects.prefetch_related(
+            "items__product",
+            "items__variation",
+        ).get(pk=cart.pk)
         return cart
 
     def get_serializer_class(self):
         if self.request.method in ["POST", "PUT", "PATCH"]:
             return CartCreateSerializer
         return CartSerializer
-
-
-class CartRemoveAPIView(generics.DestroyAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = CartItemCreateSerializer
-
-    def get_object(self):
-        cart = Cart.objects.get(user=self.request.user)
-        product_id = self.request.data.get("product")
-        attribute_id = self.request.data.get("attribute")
-
-        try:
-            return CartItem.objects.get(
-                cart=cart,
-                product_id=product_id,
-                attribute_id=attribute_id,
-            )
-        except CartItem.DoesNotExist:
-            raise generics.NotFound("Item not found in cart")

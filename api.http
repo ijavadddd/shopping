@@ -99,3 +99,9 @@ Accept: application/json
         }
     ]
 }
+
+###
+GET http://127.0.0.1:8000/api/cart/
+Authorization: Token 0188a8aa551da1424c43be3df067987446aaa99d
+Content-Type: application/json
+Accept: application/json
