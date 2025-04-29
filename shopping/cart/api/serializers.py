@@ -18,13 +18,13 @@ class CartItemSerializer(serializers.ModelSerializer):
 
 class CartItemCreateSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
-    attribute = serializers.PrimaryKeyRelatedField(
+    variation = serializers.PrimaryKeyRelatedField(
         queryset=ProductAttribute.objects.all(), required=False, allow_null=True
     )
 
     class Meta:
         model = CartItem
-        fields = ["product", "attribute", "quantity"]
+        fields = ["product", "variation", "quantity"]
 
 
 class CartSerializer(serializers.ModelSerializer):
@@ -46,22 +46,36 @@ class CartCreateSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop("items", [])
         cart, created = Cart.objects.get_or_create(**validated_data)
 
-        with transaction.atomic():
-            for item_data in items_data:
-                try:
-                    item_instance = CartItem.objects.get(
-                        product=item_data["product"],
-                        attribute=item_data.get("attribute"),
-                        cart=cart,
-                    )
-                    item_instance.quantity = F("quantity") + item_data["quantity"]
-                    item_instance.save()
-                except CartItem.DoesNotExist:
-                    CartItem.objects.create(
-                        product=item_data["product"],
-                        attribute=item_data.get("attribute"),
-                        cart=cart,
-                        quantity=item_data["quantity"],
-                    )
-
+        if "items" in validated_data:
+            items_data = validated_data.pop("items")
+            with transaction.atomic():
+                for item in items_data:
+                    try:
+                        item_instance = CartItem.objects.get(
+                            product=item["product"],
+                            variation=item.get("variation"),
+                            cart=cart,
+                        )
+                        item_instance.quantity = F("quantity") + item["quantity"]
+                        item_instance.save()
+                    except CartItem.DoesNotExist:
+                        CartItem.objects.create(**item, cart=cart)
         return cart
+
+    def update(self, instance, validated_data):
+        if "items" in validated_data:
+            items_data = validated_data.pop("items")
+            with transaction.atomic():
+                for item in items_data:
+                    try:
+                        item_instance = CartItem.objects.get(
+                            product=item["product"],
+                            variation=item.get("variation"),
+                            cart=instance,
+                        )
+                        item_instance.quantity = F("quantity") + item["quantity"]
+                        item_instance.save()
+                    except CartItem.DoesNotExist:
+                        CartItem.objects.create(**item, cart=instance)
+
+        return instance
