@@ -7,7 +7,7 @@ from shopping.product.models import (
     Product,
     AttributeType,
     AttributeValue,
-    ProductAttribute,
+    ProductVariation,
     Review,
 )
 
@@ -18,7 +18,7 @@ from shopping.product.models import (
     ProductImage,
     AttributeType,
     AttributeValue,
-    ProductAttribute,
+    ProductVariation,
     Review,
 )
 class WholeTestAdmin(admin.ModelAdmin):

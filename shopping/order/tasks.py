@@ -4,7 +4,7 @@ from django.db.models import F
 from django.db import transaction
 
 from shopping.order.models import Order, OrderItem
-from shopping.product.models import Product, ProductAttribute
+from shopping.product.models import Product, ProductVariation
 
 
 def restore_stock(order_id):

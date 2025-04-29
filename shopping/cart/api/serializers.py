@@ -3,7 +3,7 @@ from django.db import transaction
 from rest_framework.exceptions import APIException
 
 from shopping.cart.models import Cart, CartItem
-from shopping.product.models import Product, ProductAttribute
+from shopping.product.models import Product, ProductVariation
 from django.db.models import F
 from shopping.order.api.serializers import ProductSerializer
 
@@ -34,7 +34,7 @@ class CartItemSerializer(serializers.ModelSerializer):
 class CartItemCreateSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     variation = serializers.PrimaryKeyRelatedField(
-        queryset=ProductAttribute.objects.all(), required=False, allow_null=True
+        queryset=ProductVariation.objects.all(), required=False, allow_null=True
     )
 
     class Meta:

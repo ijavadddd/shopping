@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 
 from shopping.users.models import User
-from shopping.product.models import Product, ProductAttribute
+from shopping.product.models import Product, ProductVariation
 
 
 class Cart(models.Model):
@@ -18,7 +18,7 @@ class CartItem(models.Model):
     cart = models.ForeignKey(Cart, related_name="items", on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     variation = models.ForeignKey(
-        ProductAttribute,
+        ProductVariation,
         on_delete=models.CASCADE,
         null=True,
         blank=True,

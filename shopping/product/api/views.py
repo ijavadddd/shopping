@@ -10,13 +10,13 @@ from shopping.product.models import Product
 from shopping.product.models import ProductCategory
 from shopping.product.models import ProductImage
 from shopping.product.models import Review
-from shopping.product.models import ProductAttribute
+from shopping.product.models import ProductVariation
 from django_filters import rest_framework as filters
 
 
 class ProductFilter(filters.FilterSet):
-    min_price = filters.NumberFilter(field_name="price", lookup_expr="gte")
-    max_price = filters.NumberFilter(field_name="price", lookup_expr="lte")
+    min_price = filters.NumberFilter(field_name="variations__price", lookup_expr="gte")
+    max_price = filters.NumberFilter(field_name="variations__price", lookup_expr="lte")
     name = filters.CharFilter(field_name="name", lookup_expr="icontains")
     categories = filters.CharFilter(
         field_name="categories__category__name", lookup_expr="icontains"
@@ -25,7 +25,7 @@ class ProductFilter(filters.FilterSet):
     class Meta:
         model = Product
         fields = [
-            "price",
+            # "variations__ price",
             "categories__category__name",
             "name",
         ]
@@ -67,7 +67,7 @@ class ProductListAPIView(ListAPIView):
         prefetch_args.append(
             Prefetch(
                 "attributes",
-                queryset=ProductAttribute.objects.select_related(
+                queryset=ProductVariation.objects.select_related(
                     "attribute", "attribute__attribute_type"
                 ),
             )
@@ -99,7 +99,7 @@ class ProductListAPIView(ListAPIView):
 class ProductRetrieveAPIView(RetrieveAPIView):
     queryset = Product.objects.prefetch_related(
         Prefetch(
-            "attributes", queryset=ProductAttribute.objects.order_by("price_modifier")
+            "attributes", queryset=ProductVariation.objects.order_by("price_modifier")
         ),
         Prefetch("categories", queryset=ProductCategory.objects.order_by("-depth")),
         "categories__category",

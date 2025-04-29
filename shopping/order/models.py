@@ -6,7 +6,7 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 
-from shopping.product.models import Product, ProductAttribute
+from shopping.product.models import Product, ProductVariation
 from shopping.users.models import User
 
 
@@ -42,7 +42,7 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     variation = models.ForeignKey(
-        ProductAttribute,
+        ProductVariation,
         on_delete=models.CASCADE,
         null=True,
         blank=True,

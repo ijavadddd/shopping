@@ -31,14 +31,12 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     description = models.TextField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
     discounted_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         blank=True,
         null=True,
     )
-    stock = models.PositiveIntegerField()
     available = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -129,15 +127,17 @@ class AttributeValue(models.Model):
         return f"{self.attribute_type.name}: {self.value}"
 
 
-class ProductAttribute(models.Model):
+class ProductVariation(models.Model):
     """
     Links attributes to products with price modifiers
     """
 
     product = models.ForeignKey(
-        "Product", related_name="attributes", on_delete=models.CASCADE
+        "Product", related_name="variations", on_delete=models.CASCADE
     )
-    attribute = models.ForeignKey(AttributeValue, on_delete=models.CASCADE)
+    attribute = models.ForeignKey(
+        AttributeValue, on_delete=models.CASCADE, null=True, blank=True
+    )
     price_modifier = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     stock = models.PositiveIntegerField(default=0)
 

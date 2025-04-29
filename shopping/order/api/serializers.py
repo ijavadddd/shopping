@@ -6,7 +6,7 @@ from django.db.models import F
 
 from shopping.order.models import Order, Payment, Product, Shipping, Refund, OrderItem
 from shopping.product.api.serializers import VendorSerializer
-from shopping.product.models import Product, ProductAttribute
+from shopping.product.models import Product, ProductVariation
 from shopping.cart.models import CartItem
 
 
@@ -81,7 +81,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         )
 
         class Meta:
-            model = ProductAttribute
+            model = ProductVariation
             exclude = ("product", "attribute")
 
     product = ProductSerializer(read_only=True)
@@ -129,7 +129,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
             # Check if variation exists for product
             if variation:
-                if not ProductAttribute.objects.filter(
+                if not ProductVariation.objects.filter(
                     id=variation.id, product=product
                 ).exists():
                     raise StockValidationError(
@@ -263,7 +263,7 @@ class OrderSerializer(serializers.ModelSerializer):
 class OrderItemCreateSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     variation = serializers.PrimaryKeyRelatedField(
-        queryset=ProductAttribute.objects.all(), required=False, allow_null=True
+        queryset=ProductVariation.objects.all(), required=False, allow_null=True
     )
 
     class Meta:

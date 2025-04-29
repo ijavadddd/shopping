@@ -7,7 +7,7 @@ from shopping.product.models import ProductImage
 from shopping.product.models import Review
 from shopping.product.models import AttributeType
 from shopping.product.models import AttributeValue
-from shopping.product.models import ProductAttribute
+from shopping.product.models import ProductVariation
 from shopping.users.models import User
 
 
@@ -95,7 +95,7 @@ class ProductSerializer(serializers.ModelSerializer):
         )
 
         class Meta:
-            model = ProductAttribute
+            model = ProductVariation
             fields = [
                 "id",
                 "attribute_name",
@@ -118,9 +118,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "name",
             "slug",
             "description",
-            "price",
             "discounted_price",
-            "stock",
             "available",
             "images",
             "attributes",
