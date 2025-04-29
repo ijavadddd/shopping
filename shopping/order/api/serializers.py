@@ -43,10 +43,11 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_image(self, obj):
         request = self.context.get("request")
         # Use prefetched data if available, otherwise fallback to query
-        image = getattr(obj, "image", {})[0]
-        if image is None:
+        try:
+            image = getattr(obj, "image", [])[0] if getattr(obj, "image", []) else None
+        except (IndexError, AttributeError):
             image = obj.images.order_by("-is_featured").first()
-        if image.image and hasattr(image.image, "url"):
+        if image and hasattr(image.image, "url"):
             return (
                 request.build_absolute_uri(image.image.url)
                 if request
@@ -57,17 +58,37 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class OrderItemSerializer(serializers.ModelSerializer):
     class VariationSerializer(serializers.ModelSerializer):
+        attribute_name = serializers.CharField(
+            source="attribute.attribute_type.name", read_only=True
+        )
+        attribute_name_slug = serializers.CharField(
+            source="attribute.attribute_type.slug", read_only=True
+        )
+        attribute_value = serializers.CharField(
+            source="attribute.value", read_only=True
+        )
+        attribute_value_slug = serializers.CharField(
+            source="attribute.slug", read_only=True
+        )
+
         class Meta:
             model = ProductAttribute
-            fields = ["id", "value", "attribute_type__name"]
+            exclude = ("product", "attribute")
 
     product = ProductSerializer(read_only=True)
     refunds = RefundSerializer(many=True, read_only=True)
-    variation = VariationSerializer(read_only=True, source="attributes.attribute")
+    variation = VariationSerializer(read_only=True)
 
     class Meta:
         model = OrderItem
-        fields = ["id", "product", "quantity", "price", "refunds", "variation"]
+        fields = [
+            "id",
+            "product",
+            "quantity",
+            "price",
+            "refunds",
+            "variation",
+        ]
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -82,13 +103,13 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class OrderItemCreateSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
-    attribute = serializers.PrimaryKeyRelatedField(
+    variation = serializers.PrimaryKeyRelatedField(
         queryset=ProductAttribute.objects.all(), required=False, allow_null=True
     )
 
     class Meta:
         model = OrderItem
-        fields = ["product", "attribute", "quantity", "price"]
+        fields = ["product", "variation", "quantity", "price"]
 
 
 class OrderCreateSerializer(serializers.ModelSerializer):
@@ -122,7 +143,7 @@ class OrderCreateSerializer(serializers.ModelSerializer):
                 OrderItem.objects.create(
                     order=order,
                     product=item_data["product"],
-                    attribute=item_data.get("attribute"),
+                    variation=item_data.get("variation"),
                     quantity=item_data["quantity"],
                     price=item_data["price"],
                 )
