@@ -1,10 +1,25 @@
 from rest_framework import serializers
 from django.db import transaction
+from rest_framework.exceptions import APIException
 
 from shopping.cart.models import Cart, CartItem
 from shopping.product.models import Product, ProductAttribute
 from django.db.models import F
 from shopping.order.api.serializers import ProductSerializer
+
+
+class StockValidationError(APIException):
+    status_code = 403
+    default_detail = "quantity cant be more than stock"
+    default_code = "stock_validation_error"
+
+    def __init__(self, detail=None, code=None):
+        super().__init__(detail, code)
+        self.detail = {
+            "result": "error",
+            "message": self.default_detail,
+            "status_code": self.status_code,
+        }
 
 
 class CartItemSerializer(serializers.ModelSerializer):
@@ -48,20 +63,40 @@ class CartCreateSerializer(serializers.ModelSerializer):
 
         with transaction.atomic():
             for item in items_data:
+                product = item["product"]
+                variation = item.get("variation")
+                quantity = item["quantity"]
+
+                # Check stock based on whether variation is specified
+                if variation:
+                    if variation.stock < quantity:
+                        raise StockValidationError()
+                else:
+                    if product.stock < quantity:
+                        raise StockValidationError()
+
                 try:
                     item_instance = CartItem.objects.get(
                         product=item["product"],
-                        variation=item.get("variation"),
+                        variation=variation,
                         cart=cart,
                     )
-                    item_instance.quantity = F("quantity") + item["quantity"]
+                    # Check stock based on whether variation is specified
+                    if variation:
+                        if variation.stock < (item_instance.quantity + quantity):
+                            raise StockValidationError()
+                    else:
+                        if product.stock < (item_instance.quantity + quantity):
+                            raise StockValidationError()
+
+                    item_instance.quantity = F("quantity") + quantity
                     item_instance.save()
                 except CartItem.DoesNotExist:
                     CartItem.objects.create(
                         product=item["product"],
-                        variation=item.get("variation"),
+                        variation=variation,
                         cart=cart,
-                        quantity=item["quantity"],
+                        quantity=quantity,
                     )
         return cart
 
@@ -70,20 +105,46 @@ class CartCreateSerializer(serializers.ModelSerializer):
             items_data = validated_data.pop("items")
             with transaction.atomic():
                 for item in items_data:
+                    product = item["product"]
+                    variation = item.get("variation")
+                    quantity = item["quantity"]
+
                     try:
                         item_instance = CartItem.objects.get(
                             product=item["product"],
-                            variation=item.get("variation"),
+                            variation=variation,
                             cart=instance,
                         )
-                        item_instance.quantity = F("quantity") + item["quantity"]
-                        item_instance.save()
+                        # Check stock based on whether variation is specified
+                        if variation:
+                            if variation.stock < (item_instance.quantity + quantity):
+                                raise StockValidationError()
+                        else:
+                            if product.stock < (item_instance.quantity + quantity):
+                                raise StockValidationError()
+
+                        new_quantity = item_instance.quantity + quantity
+                        if new_quantity <= 0:
+                            item_instance.delete()
+                        else:
+                            item_instance.quantity = F("quantity") + quantity
+                            item_instance.save()
                     except CartItem.DoesNotExist:
-                        CartItem.objects.create(
-                            product=item["product"],
-                            variation=item.get("variation"),
-                            cart=instance,
-                            quantity=item["quantity"],
-                        )
+                        # Only create new item if quantity is positive
+                        if quantity > 0:
+                            # Check stock based on whether variation is specified
+                            if variation:
+                                if variation.stock < quantity:
+                                    raise StockValidationError()
+                            else:
+                                if product.stock < quantity:
+                                    raise StockValidationError()
+
+                            CartItem.objects.create(
+                                product=item["product"],
+                                variation=variation,
+                                cart=instance,
+                                quantity=quantity,
+                            )
 
         return instance
