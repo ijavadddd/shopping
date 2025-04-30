@@ -10,7 +10,7 @@ from shopping.order.api.serializers import (
     OrderCreateSerializer,
     StockValidationError,
 )
-from shopping.order.models import Order, Payment, Refund, OrderItem
+from shopping.order.models import Order, Payment, Refund, OrderItem, ProductVariation
 from shopping.product.models import ProductImage
 
 from rest_framework import status
@@ -77,132 +77,7 @@ class OrderAPIViewSet(ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-
-        with transaction.atomic():
-            # Update order fields
-            for attr, value in serializer.validated_data.items():
-                if attr not in ["items", "payments", "shipping"]:
-                    setattr(instance, attr, value)
-
-            # Update shipping if provided
-            if "shipping" in serializer.validated_data:
-                shipping_data = serializer.validated_data.pop("shipping")
-                for attr, value in shipping_data.items():
-                    setattr(instance.shipping, attr, value)
-                instance.shipping.save()
-
-            # Update payments if provided
-            if "payments" in serializer.validated_data:
-                payments_data = serializer.validated_data.pop("payments")
-                # Create new payments
-                for payment_data in payments_data:
-                    Payment.objects.create(order=instance, **payment_data)
-
-            # Update items if provided
-            if "items" in serializer.validated_data:
-                items_data = serializer.validated_data.pop("items")
-                # Track processed items to handle duplicates
-                processed_items = {}
-
-                for item_data in items_data:
-                    product = item_data["product"]
-                    variation = item_data.get("variation")
-                    quantity = item_data["quantity"]
-
-                    # Create unique key for product+variation combination
-                    key = f"{product.id}_{variation.id if variation else 'none'}"
-
-                    try:
-                        # Try to find existing order item
-                        order_item = OrderItem.objects.get(
-                            order=instance, product=product, variation=variation
-                        )
-
-                        # Get current quantity from database
-                        current_quantity = OrderItem.objects.values_list(
-                            "quantity", flat=True
-                        ).get(pk=order_item.pk)
-
-                        # Check if adding quantity would exceed stock
-                        if variation:
-                            if variation.stock < (current_quantity + quantity):
-                                raise StockValidationError(
-                                    f"Adding {quantity} would exceed variation stock. Available: {variation.stock}"
-                                )
-                            # Reduce stock
-                            variation.stock = F("stock") - quantity
-                            variation.save()
-                        else:
-                            if product.stock < (current_quantity + quantity):
-                                raise StockValidationError(
-                                    f"Adding {quantity} would exceed product stock. Available: {product.stock}"
-                                )
-                            # Reduce stock
-                            product.stock = F("stock") - quantity
-                            product.save()
-
-                        # Update quantity
-                        order_item.quantity = F("quantity") + quantity
-                        order_item.save()
-                        processed_items[key] = order_item
-
-                    except OrderItem.DoesNotExist:
-                        if key not in processed_items:
-                            # Check if product has enough stock
-                            if variation:
-                                if variation.stock < quantity:
-                                    raise StockValidationError(
-                                        f"Not enough stock for variation {variation.id}. Available: {variation.stock}"
-                                    )
-                                # Reduce stock
-                                variation.stock = F("stock") - quantity
-                                variation.save()
-                            else:
-                                if product.stock < quantity:
-                                    raise StockValidationError(
-                                        f"Not enough stock for product {product.id}. Available: {product.stock}"
-                                    )
-                                # Reduce stock
-                                product.stock = F("stock") - quantity
-                                product.save()
-
-                            # Create new order item
-                            order_item = OrderItem.objects.create(
-                                order=instance, **item_data
-                            )
-                            processed_items[key] = order_item
-                        else:
-                            # Update existing item's quantity
-                            order_item = processed_items[key]
-                            current_quantity = OrderItem.objects.values_list(
-                                "quantity", flat=True
-                            ).get(pk=order_item.pk)
-
-                            # Check if adding quantity would exceed stock
-                            if variation:
-                                if variation.stock < (current_quantity + quantity):
-                                    raise StockValidationError(
-                                        f"Adding {quantity} would exceed variation stock. Available: {variation.stock}"
-                                    )
-                                # Reduce stock
-                                variation.stock = F("stock") - quantity
-                                variation.save()
-                            else:
-                                if product.stock < (current_quantity + quantity):
-                                    raise StockValidationError(
-                                        f"Adding {quantity} would exceed product stock. Available: {product.stock}"
-                                    )
-                                # Reduce stock
-                                product.stock = F("stock") - quantity
-                                product.save()
-
-                            order_item.quantity = F("quantity") + quantity
-                            order_item.save()
-
-            instance.save()
-
-        # Refresh the instance to get latest data
-        instance.refresh_from_db()
-        # Get fresh serializer with updated data
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
+        order = serializer.save(user=self.request.user)
+        return Response(
+            OrderSerializer(order).data, status=status.HTTP_206_PARTIAL_CONTENT
+        )
