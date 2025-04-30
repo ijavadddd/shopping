@@ -127,6 +127,25 @@ class AttributeValue(models.Model):
         return f"{self.attribute_type.name}: {self.value}"
 
 
+class ProductAttribute(models.Model):
+    """
+    Links attributes to products with price modifiers
+    """
+
+    product = models.ForeignKey(
+        "Product", related_name="attributes", on_delete=models.CASCADE
+    )
+    attribute = models.ForeignKey(
+        AttributeValue, on_delete=models.CASCADE, null=True, blank=True
+    )
+
+    class Meta:
+        unique_together = ("product", "attribute")
+
+    def __str__(self):
+        return f"{self.product.name} - {self.attribute}"
+
+
 class ProductVariation(models.Model):
     """
     Links attributes to products with price modifiers

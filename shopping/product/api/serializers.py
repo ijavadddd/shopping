@@ -7,7 +7,7 @@ from shopping.product.models import ProductImage
 from shopping.product.models import Review
 from shopping.product.models import AttributeType
 from shopping.product.models import AttributeValue
-from shopping.product.models import ProductVariation
+from shopping.product.models import ProductVariation, ProductAttribute
 from shopping.users.models import User
 
 
@@ -48,23 +48,28 @@ class ProductListSerializer(serializers.ModelSerializer):
     def get_image(self, obj):
         request = self.context.get("request")
         # Use prefetched data if available, otherwise fallback to query
-        image = getattr(obj, "image", {})[0]
-        if image is None:
-            image = obj.images.order_by("-is_featured").first()
-        if image.image and hasattr(image.image, "url"):
-            return (
-                request.build_absolute_uri(image.image.url)
-                if request
-                else image.image.url
+        try:
+            image = (
+                getattr(obj, "_prefetched_objects_cache", {}).get("images", {}).first()
             )
-        return None
+
+            if image is None:
+                image = obj.images.order_by("-is_featured").first()
+            if image.image and hasattr(image.image, "url"):
+                return (
+                    request.build_absolute_uri(image.image.url)
+                    if request
+                    else image.image.url
+                )
+        except Exception as e:
+            return None
 
     def get_variations(self, obj):
         attributes = getattr(obj, "_prefetched_objects_cache", {}).get(
-            "attributes", None
+            "variations", None
         )
         if attributes is None:
-            attributes = obj.attributes.filter(price_modifier__gt=0)
+            attributes = obj.variations.filter(price_modifier__gt=0)
         attributes = filter(lambda x: x.price_modifier > 0, attributes)
         return [
             {
@@ -95,7 +100,7 @@ class ProductSerializer(serializers.ModelSerializer):
         )
 
         class Meta:
-            model = ProductVariation
+            model = ProductAttribute
             fields = [
                 "id",
                 "attribute_name",
@@ -144,10 +149,10 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_variations(self, obj):
         attributes = getattr(obj, "_prefetched_objects_cache", {}).get(
-            "attributes", None
+            "variations", None
         )
         if attributes is None:
-            attributes = obj.attributes.filter(price_modifier__gt=0)
+            attributes = obj.variations.filter(price_modifier__gt=0)
         attributes = filter(lambda x: x.price_modifier > 0, attributes)
         return [
             {

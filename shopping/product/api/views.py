@@ -10,7 +10,7 @@ from shopping.product.models import Product
 from shopping.product.models import ProductCategory
 from shopping.product.models import ProductImage
 from shopping.product.models import Review
-from shopping.product.models import ProductVariation
+from shopping.product.models import ProductVariation, ProductAttribute
 from django_filters import rest_framework as filters
 
 
@@ -86,7 +86,6 @@ class ProductListAPIView(ListAPIView):
             Prefetch(
                 "images",
                 queryset=ProductImage.objects.filter(is_featured=True),
-                to_attr="image",
             )
         )
 
@@ -98,14 +97,16 @@ class ProductListAPIView(ListAPIView):
 
 class ProductRetrieveAPIView(RetrieveAPIView):
     queryset = Product.objects.prefetch_related(
-        Prefetch(
-            "attributes", queryset=ProductVariation.objects.order_by("price_modifier")
-        ),
+        Prefetch("attributes", queryset=ProductAttribute.objects.all()),
         Prefetch("categories", queryset=ProductCategory.objects.order_by("-depth")),
         "categories__category",
         Prefetch(
             "images",
             queryset=ProductImage.objects.order_by("-is_featured"),
+        ),
+        Prefetch(
+            "variations",
+            queryset=ProductVariation.objects.order_by("price_modifier"),
         ),
         "attributes__attribute",
         "attributes__attribute__attribute_type",

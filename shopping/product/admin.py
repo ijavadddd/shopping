@@ -9,6 +9,7 @@ from shopping.product.models import (
     AttributeValue,
     ProductVariation,
     Review,
+    ProductAttribute,
 )
 
 
@@ -20,6 +21,7 @@ from shopping.product.models import (
     AttributeValue,
     ProductVariation,
     Review,
+    ProductAttribute,
 )
 class WholeTestAdmin(admin.ModelAdmin):
     pass
