@@ -39,9 +39,7 @@ class OrderAPIViewSet(ModelViewSet):
         prefetch_args.append(
             Prefetch(
                 "items",
-                queryset=OrderItem.objects.select_related(
-                    "product",
-                ),
+                queryset=OrderItem.objects.select_related("product", "variation"),
             )
         )
 
@@ -50,7 +48,6 @@ class OrderAPIViewSet(ModelViewSet):
             Prefetch(
                 "items__product__images",
                 queryset=ProductImage.objects.order_by("-is_featured"),
-                to_attr="image",
             )
         )
 

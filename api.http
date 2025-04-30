@@ -60,7 +60,7 @@ Accept: application/json
       "shipped_at": "2025-04-30T06:03:29Z",
       "delivered_at": null
     },
-    "order_number": "98846464",
+    "order_number": "988446464",
     "status": "pending",
     "shipping_address": "tehran, iran",
     "billing_address": "karaj, Iran",
@@ -97,7 +97,7 @@ Accept: application/json
 
 ###
 PATCH http://127.0.0.1:8000/api/cart/
-Authorization: Token 0188a8aa551da1424c43be3df067987446aaa99d
+Authorization: Token 50721b8673fb8d4a9d9933fa966d7ba5a63b73fc
 Content-Type: application/json
 Accept: application/json
 
@@ -110,9 +110,3 @@ Accept: application/json
         }
     ]
 }
-
-###
-GET http://127.0.0.1:8000/api/cart/
-Authorization: Token 0188a8aa551da1424c43be3df067987446aaa99d
-Content-Type: application/json
-Accept: application/json

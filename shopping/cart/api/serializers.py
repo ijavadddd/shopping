@@ -8,6 +8,23 @@ from django.db.models import F
 from shopping.order.api.serializers import ProductSerializer
 
 
+class VariationSerializer(serializers.ModelSerializer):
+    attribute_name = serializers.CharField(
+        source="attribute.attribute_type.name", read_only=True
+    )
+    attribute_name_slug = serializers.CharField(
+        source="attribute.attribute_type.slug", read_only=True
+    )
+    attribute_value = serializers.CharField(source="attribute.value", read_only=True)
+    attribute_value_slug = serializers.CharField(
+        source="attribute.slug", read_only=True
+    )
+
+    class Meta:
+        model = ProductVariation
+        exclude = ("product", "attribute")
+
+
 class StockValidationError(APIException):
     status_code = 403
     default_detail = "quantity cant be more than stock"
@@ -24,7 +41,7 @@ class StockValidationError(APIException):
 
 class CartItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
-    # attribute = ProductAttributeSerializer(read_only=True)
+    variation = VariationSerializer(read_only=True)
 
     class Meta:
         model = CartItem
@@ -34,7 +51,7 @@ class CartItemSerializer(serializers.ModelSerializer):
 class CartItemCreateSerializer(serializers.ModelSerializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
     variation = serializers.PrimaryKeyRelatedField(
-        queryset=ProductVariation.objects.all(), required=False, allow_null=True
+        queryset=ProductVariation.objects.all()
     )
 
     class Meta:
