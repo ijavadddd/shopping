@@ -1,4 +1,6 @@
 from django.db import models
+from django.conf import settings
+from minio_storage.storage import MinioMediaStorage
 
 from shopping.users.models import User
 
@@ -18,6 +20,7 @@ class Category(models.Model):
         upload_to="images/category_images/",
         blank=True,
         null=True,
+        storage=MinioMediaStorage(),
     )
 
     class Meta:
@@ -73,7 +76,10 @@ class ProductImage(models.Model):
         related_name="images",
         on_delete=models.CASCADE,
     )
-    image = models.ImageField(upload_to="images/product_images/")
+    image = models.ImageField(
+        upload_to="images/product_images/",
+        storage=MinioMediaStorage(),
+    )
     is_featured = models.BooleanField(default=False)
 
     class Meta:

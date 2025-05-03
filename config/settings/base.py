@@ -84,6 +84,7 @@ THIRD_PARTY_APPS = [
     "corsheaders",
     "drf_spectacular",
     "django_filters",
+    "minio_storage",
 ]
 
 LOCAL_APPS = [
@@ -164,6 +165,10 @@ STATICFILES_FINDERS = [
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 ]
+
+# Collectfasta settings
+# ------------------------------------------------------------------------------
+COLLECTFASTA_STRATEGY = "collectfasta.strategies.filesystem.FileSystemStrategy"
 
 # MEDIA
 # ------------------------------------------------------------------------------
@@ -324,4 +329,75 @@ SPECTACULAR_SETTINGS = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=10),
+}
+
+# File Storage
+# ------------------------------------------------------------------------------
+STORAGES = {
+    "default": {
+        "BACKEND": "minio_storage.storage.MinioMediaStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+# MinIO Credentials
+MINIO_STORAGE_ENDPOINT = env(
+    "MINIO_STORAGE_ENDPOINT", default="localhost:9000"
+)  # Include protocol
+MINIO_STORAGE_ACCESS_KEY = env("MINIO_STORAGE_ACCESS_KEY")
+MINIO_STORAGE_SECRET_KEY = env("MINIO_STORAGE_SECRET_KEY")
+MINIO_STORAGE_USE_HTTPS = env("MINIO_STORAGE_USE_HTTPS", default=False)
+
+# Optional Metadata for Media Files
+MINIO_STORAGE_MEDIA_OBJECT_METADATA = env(
+    "MINIO_STORAGE_MEDIA_OBJECT_METADATA", default={}
+)
+
+# Buckets
+MINIO_STORAGE_MEDIA_BUCKET_NAME = env(
+    "MINIO_STORAGE_MEDIA_BUCKET_NAME", default="media"
+)
+MINIO_STORAGE_STATIC_BUCKET_NAME = env(
+    "MINIO_STORAGE_STATIC_BUCKET_NAME", default="static"
+)
+
+# Backups (Optional)
+MINIO_STORAGE_MEDIA_BACKUP_BUCKET = env("MINIO_STORAGE_MEDIA_BACKUP_BUCKET", default="")
+MINIO_STORAGE_MEDIA_BACKUP_FORMAT = env("MINIO_STORAGE_MEDIA_BACKUP_FORMAT", default="")
+
+# Auto-create buckets on startup
+MINIO_STORAGE_AUTO_CREATE_MEDIA_BUCKET = env(
+    "MINIO_STORAGE_AUTO_CREATE_MEDIA_BUCKET", default=True
+)
+MINIO_STORAGE_AUTO_CREATE_STATIC_BUCKET = True  # or env(...) if you prefer
+
+# MinIO Storage Settings
+MINIO_STORAGE_MEDIA_BUCKET = MINIO_STORAGE_MEDIA_BUCKET_NAME
+MINIO_STORAGE_STATIC_BUCKET = MINIO_STORAGE_STATIC_BUCKET_NAME
+MINIO_STORAGE_MEDIA_URL = f"{MINIO_STORAGE_ENDPOINT}/{MINIO_STORAGE_MEDIA_BUCKET_NAME}/"
+MINIO_STORAGE_STATIC_URL = (
+    f"{MINIO_STORAGE_ENDPOINT}/{MINIO_STORAGE_STATIC_BUCKET_NAME}/"
+)
+
+# Logging configuration
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "minio_storage": {
+            "handlers": ["console"],
+            "level": "ERROR",
+        },
+        "django": {
+            "handlers": ["console"],
+            "level": "ERROR",
+        },
+    },
 }
