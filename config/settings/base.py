@@ -150,6 +150,9 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    # third party
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 # STATIC
@@ -338,7 +341,7 @@ STORAGES = {
         "BACKEND": "minio_storage.storage.MinioMediaStorage",
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
@@ -380,24 +383,3 @@ MINIO_STORAGE_MEDIA_URL = f"{MINIO_STORAGE_ENDPOINT}/{MINIO_STORAGE_MEDIA_BUCKET
 MINIO_STORAGE_STATIC_URL = (
     f"{MINIO_STORAGE_ENDPOINT}/{MINIO_STORAGE_STATIC_BUCKET_NAME}/"
 )
-
-# Logging configuration
-LOGGING = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-        },
-    },
-    "loggers": {
-        "minio_storage": {
-            "handlers": ["console"],
-            "level": "ERROR",
-        },
-        "django": {
-            "handlers": ["console"],
-            "level": "ERROR",
-        },
-    },
-}

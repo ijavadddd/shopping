@@ -40,8 +40,8 @@ EMAIL_BACKEND = env(
 INSTALLED_APPS += ["debug_toolbar"]
 # https://django-debug-toolbar.readthedocs.io/en/latest/installation.html#middleware
 MIDDLEWARE += [
-    # "debug_toolbar.middleware.DebugToolbarMiddleware",
-    # "silk.middleware.SilkyMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
+    "silk.middleware.SilkyMiddleware",
 ]
 # https://django-debug-toolbar.readthedocs.io/en/latest/configuration.html#debug-toolbar-config
 DEBUG_TOOLBAR_CONFIG = {
@@ -65,8 +65,8 @@ if env("USE_DOCKER") == "yes":
 # ------------------------------------------------------------------------------
 # https://django-extensions.readthedocs.io/en/latest/installation_instructions.html#configuration
 INSTALLED_APPS += [
-    # "django_extensions",
-    # "silk",
+    "django_extensions",
+    "silk",
 ]
 
 # Your stuff...
