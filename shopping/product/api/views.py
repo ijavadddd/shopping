@@ -84,7 +84,7 @@ class ProductListAPIView(ListAPIView):
         prefetch_args.append(
             Prefetch(
                 "images",
-                queryset=ProductImage.objects.filter(is_featured=True),
+                queryset=ProductImage.objects.order_by("-is_featured"),
             )
         )
 

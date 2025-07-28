@@ -79,7 +79,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             source="attribute.attribute_type.name", read_only=True
         )
         attribute_name_slug = serializers.CharField(
-            source="attribute.ttribute_type.slug", read_only=True
+            source="attribute.attribute_type.slug", read_only=True
         )
         attribute_value = serializers.CharField(
             source="attribute.value", read_only=True
@@ -107,6 +107,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             ]
 
     image = serializers.SerializerMethodField(read_only=True)
+    album = serializers.SerializerMethodField(read_only=True)
     attributes = ProductAttributeSerializer(many=True, read_only=True)
     variations = ProductVariationSerializer(many=True, read_only=True)
     category = CategorySerializer(read_only=True)
@@ -133,6 +134,30 @@ class ProductListSerializer(serializers.ModelSerializer):
                 )
         except Exception as e:
             return None
+
+    def get_album(self, obj):
+        request = self.context.get("request")
+        # Use prefetched data if available, otherwise fallback to query
+        # try:
+        result = []
+        images = (
+            getattr(obj, "_prefetched_objects_cache", {})
+            .get("images", {})
+            .filter(is_featured=False)
+        )
+
+        if images is None:
+            images = obj.images.filter(is_featured=False)
+        for image in images:
+            if image.image and hasattr(image.image, "url"):
+                result.append(
+                    request.build_absolute_uri(image.image.url)
+                    if request
+                    else image.image.url
+                )
+        return result
+        # except Exception as e:
+        #     return None
 
 
 class ProductSerializer(serializers.ModelSerializer):
