@@ -27,11 +27,15 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ["id", "name", "ancestors", "children"]
+        fields = ["id", "ancestors"]
 
     def get_ancestors(self, obj):
         # returns path from root to this node
-        return [{"id": a.id, "name": a.name} for a in obj.get_ancestors()]
+        ancestors = [
+            {"id": a.id, "name": a.name, "level": a.level} for a in obj.get_ancestors()
+        ]
+        ancestors.append({"id": obj.id, "name": obj.name, "level": obj.level})
+        return ancestors
 
 
 class ProductAttributeSerializer(serializers.ModelSerializer):
@@ -42,6 +46,9 @@ class ProductAttributeSerializer(serializers.ModelSerializer):
     attribute_value = serializers.CharField(source="value", read_only=True)
     attribute_value_slug = serializers.CharField(source="slug", read_only=True)
     attribute_hex_code = serializers.CharField(source="hex_code", read_only=True)
+    attribute_display_type = serializers.CharField(
+        source="attribute_type.display_type", read_only=True
+    )
 
     class Meta:
         model = ProductAttribute
@@ -52,6 +59,7 @@ class ProductAttributeSerializer(serializers.ModelSerializer):
             "attribute_value",
             "attribute_value_slug",
             "attribute_hex_code",
+            "attribute_display_type",
         ]
 
 
@@ -82,6 +90,9 @@ class ProductListSerializer(serializers.ModelSerializer):
         attribute_hex_code = serializers.CharField(
             source="attribute.hex_code", read_only=True
         )
+        attribute_display_type = serializers.CharField(
+            source="attribute.attribute_type.display_type", read_only=True
+        )
 
         class Meta:
             model = ProductAttribute
@@ -92,6 +103,7 @@ class ProductListSerializer(serializers.ModelSerializer):
                 "attribute_value",
                 "attribute_value_slug",
                 "attribute_hex_code",
+                "attribute_display_type",
             ]
 
     image = serializers.SerializerMethodField(read_only=True)
