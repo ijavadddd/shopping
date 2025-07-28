@@ -1,25 +1,25 @@
 volumes:
   shopping_local_postgres_data: {}
   shopping_local_postgres_data_backups: {}
-  
+
 
 services:
-  django:
-    build:
-      context: .
-      dockerfile: ./compose/local/django/Dockerfile
-    image: shopping_local_django
-    container_name: shopping_local_django
-    depends_on:
-      - postgres
-    volumes:
-      - .:/app:z
-    env_file:
-      - ./.envs/.local/.django
-      - ./.envs/.local/.postgres
-    ports:
-      - '8000:8000'
-    command: /start
+  # django:
+  #   build:
+  #     context: .
+  #     dockerfile: ./compose/local/django/Dockerfile
+  #   image: shopping_local_django
+  #   container_name: shopping_local_django
+  #   depends_on:
+  #     - postgres
+  #   volumes:
+  #     - .:/app:z
+  #   env_file:
+  #     - ./.envs/.local/.django
+  #     - ./.envs/.local/.postgres
+  #   ports:
+  #     - '8000:8000'
+  #   command: /start
 
   postgres:
     build:
@@ -32,3 +32,16 @@ services:
       - shopping_local_postgres_data_backups:/backups
     env_file:
       - ./.envs/.local/.postgres
+
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: $MINIO_STORAGE_ACCESS_KEY
+      MINIO_ROOT_PASSWORD: $MINIO_STORAGE_SECRET_KEY
+    volumes:
+      - ./data:/data
+    command: server /data --console-address ":9001"

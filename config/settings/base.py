@@ -62,6 +62,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 # APPS
 # ------------------------------------------------------------------------------
 DJANGO_APPS = [
+    "baton",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -85,6 +86,7 @@ THIRD_PARTY_APPS = [
     "drf_spectacular",
     "django_filters",
     "minio_storage",
+    "mptt",
 ]
 
 LOCAL_APPS = [
@@ -93,6 +95,7 @@ LOCAL_APPS = [
     "shopping.product",
     "shopping.order",
     "shopping.cart",
+    "baton.autodiscover",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

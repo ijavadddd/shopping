@@ -7,7 +7,6 @@ from shopping.product.api.serializers import ProductListSerializer
 from shopping.product.api.serializers import ProductReviewSerializer
 from shopping.product.api.serializers import ProductSerializer
 from shopping.product.models import Product
-from shopping.product.models import ProductCategory
 from shopping.product.models import ProductImage
 from shopping.product.models import Review
 from shopping.product.models import ProductVariation, ProductAttribute
@@ -19,14 +18,14 @@ class ProductFilter(filters.FilterSet):
     max_price = filters.NumberFilter(field_name="variations__price", lookup_expr="lte")
     name = filters.CharFilter(field_name="name", lookup_expr="icontains")
     categories = filters.CharFilter(
-        field_name="categories__category__name", lookup_expr="icontains"
+        field_name="category__name", lookup_expr="icontains"
     )
 
     class Meta:
         model = Product
         fields = [
             # "variations__ price",
-            "categories__category__name",
+            "category__name",
             "name",
         ]
 
@@ -67,7 +66,7 @@ class ProductListAPIView(ListAPIView):
         prefetch_args.append(
             Prefetch(
                 "attributes",
-                queryset=ProductVariation.objects.select_related(
+                queryset=ProductAttribute.objects.select_related(
                     "attribute", "attribute__attribute_type"
                 ),
             )
@@ -75,9 +74,9 @@ class ProductListAPIView(ListAPIView):
 
         prefetch_args.append(
             Prefetch(
-                "categories",
-                queryset=ProductCategory.objects.select_related("category").order_by(
-                    "-depth"
+                "variations",
+                queryset=ProductVariation.objects.select_related(
+                    "attribute", "attribute__attribute_type"
                 ),
             )
         )
@@ -98,8 +97,7 @@ class ProductListAPIView(ListAPIView):
 class ProductRetrieveAPIView(RetrieveAPIView):
     queryset = Product.objects.prefetch_related(
         Prefetch("attributes", queryset=ProductAttribute.objects.all()),
-        Prefetch("categories", queryset=ProductCategory.objects.order_by("-depth")),
-        "categories__category",
+        "category",
         Prefetch(
             "images",
             queryset=ProductImage.objects.order_by("-is_featured"),

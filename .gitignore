@@ -329,3 +329,4 @@ shopping/media/
 .env
 .envs/*
 !.envs/.local/
+*data/
