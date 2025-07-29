@@ -8,9 +8,12 @@ from shopping.product.models import AttributeType
 from shopping.product.models import AttributeValue
 from shopping.product.models import ProductVariation, ProductAttribute
 from shopping.users.models import User
+from shopping.users.api.serializers import UserSerializer
 
 
 class ProductReviewSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
     class Meta:
         model = Review
         exclude = ("product",)
@@ -107,10 +110,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             ]
 
     image = serializers.SerializerMethodField(read_only=True)
-    album = serializers.SerializerMethodField(read_only=True)
-    attributes = ProductAttributeSerializer(many=True, read_only=True)
     variations = ProductVariationSerializer(many=True, read_only=True)
-    category = CategorySerializer(read_only=True)
 
     class Meta:
         model = Product
@@ -134,30 +134,6 @@ class ProductListSerializer(serializers.ModelSerializer):
                 )
         except Exception as e:
             return None
-
-    def get_album(self, obj):
-        request = self.context.get("request")
-        # Use prefetched data if available, otherwise fallback to query
-        # try:
-        result = []
-        images = (
-            getattr(obj, "_prefetched_objects_cache", {})
-            .get("images", {})
-            .filter(is_featured=False)
-        )
-
-        if images is None:
-            images = obj.images.filter(is_featured=False)
-        for image in images:
-            if image.image and hasattr(image.image, "url"):
-                result.append(
-                    request.build_absolute_uri(image.image.url)
-                    if request
-                    else image.image.url
-                )
-        return result
-        # except Exception as e:
-        #     return None
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -188,10 +164,11 @@ class ProductSerializer(serializers.ModelSerializer):
 
     reviews = ProductReviewSerializer(many=True, read_only=True)
     vendor = VendorSerializer(many=False, read_only=True)
-    attributes = ProductAttributeSerializer(many=True, read_only=True)
-    categories = serializers.SerializerMethodField()
-    images = serializers.SerializerMethodField()
     variations = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField(read_only=True)
+    attributes = ProductAttributeSerializer(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
+    reviews = ProductReviewSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -207,7 +184,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "rating",
             "vendor",
             "reviews",
-            "categories",
+            "category",
             "variations",
         ]
 
@@ -242,13 +219,11 @@ class ProductSerializer(serializers.ModelSerializer):
             for attribute in attributes
         ]
 
-    def get_categories(self, obj):
+    def get_category(self, obj):
         # Use prefetched data if available, otherwise fallback to query
-        categories = getattr(obj, "_prefetched_objects_cache", {}).get(
-            "categories", None
-        )
-        if categories is None:
-            categories = obj.categories.all().order_by("-depth")
+        category = getattr(obj, "_prefetched_objects_cache", {}).get("category", None)
+        if category is None:
+            category = obj.category.all().order_by("-depth")
 
         return [
             {
@@ -256,5 +231,18 @@ class ProductSerializer(serializers.ModelSerializer):
                 "name": pc.category.name,
                 "slug": pc.category.slug,
             }
-            for pc in categories
+            for pc in category
         ]
+
+
+class CategoryListSerializer(serializers.ModelSerializer):
+    children = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ["id", "name", "children"]
+
+    def get_children(self, obj):
+        if obj.get_children():
+            return CategorySerializer(obj.get_children(), many=True).data
+        return []
