@@ -95,6 +95,7 @@ LOCAL_APPS = [
     "shopping.product",
     "shopping.order",
     "shopping.cart",
+    "shopping.crm",
     "baton.autodiscover",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
