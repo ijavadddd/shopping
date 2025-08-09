@@ -1,20 +1,32 @@
 from django.db.models import Prefetch
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.db import transaction
 from django.db.models import F
-
 from shopping.order.api.serializers import (
     OrderSerializer,
     OrderCreateSerializer,
     StockValidationError,
+    ShippingSerializer,
+    OrderChartData,
 )
-from shopping.order.models import Order, Payment, Refund, OrderItem, ProductVariation
+from shopping.order.models import (
+    Order,
+    Payment,
+    Refund,
+    OrderItem,
+    ProductVariation,
+    Shipping,
+)
 from shopping.product.models import ProductImage
 
 from rest_framework import status
 from rest_framework.response import Response
+from datetime import date, timedelta
+from collections import defaultdict
+from django.db.models import Count, Sum
+from django.db.models.functions import TruncDate
 
 
 class OrderAPIViewSet(ModelViewSet):
@@ -78,3 +90,59 @@ class OrderAPIViewSet(ModelViewSet):
         return Response(
             OrderSerializer(order).data, status=status.HTTP_206_PARTIAL_CONTENT
         )
+
+
+class AdminOrderAPI(ListAPIView):
+    permission_classes = [IsAdminUser]
+    serializer_class = OrderChartData
+
+    def get(self, request):
+        today = date.today()
+        time_filter = defaultdict(
+            lambda: timedelta(days=7),
+            {
+                "today": 0,
+                "1d": timedelta(days=1),
+                "7d": timedelta(days=7),
+                "30d": timedelta(days=30),
+                "90d": timedelta(days=90),
+            },
+        )
+        duration_key = request.query_params.get("period", "7d")
+        period = today - time_filter[duration_key]
+        last_period = period - time_filter[duration_key]
+
+        queryset = (
+            Order.objects.filter(
+                created_at__gte=period, status=Order.OrderStatus.COMPLETED.value
+            )
+            .annotate(day=TruncDate("created_at"))
+            .values("day")  # Group by day
+            .annotate(count=Count("id"))  # Count orders per day
+            .order_by("day")  # order by day ascending (optional)
+        )
+        total_count = sum(item["count"] for item in queryset)
+        last_period_qs = Order.objects.filter(
+            created_at__gte=last_period,
+            created_at__lt=period,
+            status=Order.OrderStatus.COMPLETED.value,
+        ).aggregate(count=Count("id"))
+        last_count = last_period_qs["count"] or 0
+        growth_percent = 0
+        if last_count > 0:
+            growth_percent = ((total_count - last_count) / last_count) * 100
+
+        data = {
+            "days": list(queryset),
+            "total_count": total_count,
+            "growth_percent": int(growth_percent),
+        }
+
+        serializer = OrderChartData(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
+
+
+class ShippingListAPIView(ListAPIView):
+    serializer_class = ShippingSerializer
+    queryset = Shipping.objects.all()

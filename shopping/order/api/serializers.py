@@ -14,12 +14,21 @@ class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         exclude = ("order",)
+        extra_kwargs = {
+            "amount": {"read_only": True},
+            "transaction_id": {"read_only": True},
+        }
 
 
 class ShippingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shipping
         exclude = ("order",)
+        extra_kwargs = {
+            "tracking_number": {"read_only": True},
+            "shipped_at": {"read_only": True},
+            "delivered_at": {"read_only": True},
+        }
 
 
 class RefundSerializer(serializers.ModelSerializer):
@@ -106,6 +115,11 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         exclude = ("user",)
+        extra_kwargs = {
+            "order_number": {"read_only": True},
+            "status": {"read_only": True},
+            "total_amount": {"read_only": True},
+        }
 
     def validate_items(self, items_data):
         # Track quantities for each product+variation combination
@@ -158,6 +172,9 @@ class OrderItemCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
         fields = ["product", "variation", "quantity", "price"]
+        extra_kwargs = {
+            "price": {"read_only": True},
+        }
 
 
 class OrderCreateSerializer(serializers.ModelSerializer):
@@ -291,3 +308,13 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             # Refresh the instance to get latest data
             instance.refresh_from_db()
             return instance
+
+
+class OrderChartData(serializers.Serializer):
+    class SellDaySerializer(serializers.Serializer):
+        day = serializers.DateField()
+        count = serializers.IntegerField()
+
+    days = SellDaySerializer(many=True)
+    total_count = serializers.IntegerField()
+    growth_percent = serializers.IntegerField()
