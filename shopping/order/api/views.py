@@ -101,7 +101,7 @@ class AdminOrderAPI(ListAPIView):
         time_filter = defaultdict(
             lambda: timedelta(days=7),
             {
-                "today": 0,
+                "today": timedelta(days=0),
                 "1d": timedelta(days=1),
                 "7d": timedelta(days=7),
                 "30d": timedelta(days=30),
@@ -109,7 +109,10 @@ class AdminOrderAPI(ListAPIView):
             },
         )
         duration_key = request.query_params.get("period", "7d")
-        period = today - time_filter[duration_key]
+        if duration_key == "today":
+            period = today
+        else:
+            period = today - time_filter[duration_key]
         last_period = period - time_filter[duration_key]
 
         queryset = (
