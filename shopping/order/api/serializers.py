@@ -310,7 +310,7 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             return instance
 
 
-class OrderChartData(serializers.Serializer):
+class OrderChartDataSerializer(serializers.Serializer):
     class SellDaySerializer(serializers.Serializer):
         day = serializers.DateField()
         count = serializers.IntegerField()
@@ -318,3 +318,22 @@ class OrderChartData(serializers.Serializer):
     days = SellDaySerializer(many=True)
     total_count = serializers.IntegerField()
     growth_percent = serializers.IntegerField()
+
+
+class DashboardLastOrderSerializer(serializers.ModelSerializer):
+    order_number = serializers.CharField()
+    status = serializers.CharField()
+    url = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField()
+
+    class Meta:
+        model = Order
+        fields = ("created_at", "status", "url", "order_number")
+
+    def get_url(self, obj):
+        request = self.context.get("request")
+        return (
+            request.build_absolute_uri(obj.get_absolute_url())
+            if request
+            else obj.get_absolute_url()
+        )

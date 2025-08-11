@@ -5,7 +5,7 @@ from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 from django.conf import settings
-
+from django.urls import reverse
 from shopping.product.models import Product, ProductVariation
 from shopping.users.models import User
 
@@ -37,6 +37,9 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order {self.id} by {self.user.username}"
+
+    def get_absolute_url(self):
+        return reverse("order:order-detail", kwargs={"pk": self.pk})
 
 
 class OrderItem(models.Model):

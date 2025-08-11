@@ -1,15 +1,17 @@
 from django.db.models import Prefetch
 from rest_framework.generics import ListAPIView, RetrieveAPIView, CreateAPIView
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from shopping.order.api.serializers import (
     OrderSerializer,
     OrderCreateSerializer,
     StockValidationError,
     ShippingSerializer,
-    OrderChartData,
+    OrderChartDataSerializer,
+    DashboardLastOrderSerializer,
 )
 from shopping.order.models import (
     Order,
@@ -94,7 +96,7 @@ class OrderAPIViewSet(ModelViewSet):
 
 class AdminOrderAPI(ListAPIView):
     permission_classes = [IsAdminUser]
-    serializer_class = OrderChartData
+    serializer_class = OrderChartDataSerializer
 
     def get(self, request):
         today = date.today()
@@ -141,7 +143,7 @@ class AdminOrderAPI(ListAPIView):
             "growth_percent": int(growth_percent),
         }
 
-        serializer = OrderChartData(data=data)
+        serializer = OrderChartDataSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.data)
 
@@ -149,3 +151,28 @@ class AdminOrderAPI(ListAPIView):
 class ShippingListAPIView(ListAPIView):
     serializer_class = ShippingSerializer
     queryset = Shipping.objects.all()
+
+
+class DashboardLastOrderList(APIView):
+    permission_classes = [
+        IsAdminUser,
+    ]
+    serializer_class = DashboardLastOrderSerializer
+
+    def get(self, request):
+        last_week = date.today() - timedelta(days=7)
+        queryset = Order.objects.filter(
+            Q(status=Order.OrderStatus.PENDING.value)
+            | Q(status=Order.OrderStatus.PROCESSING.value)
+            | Q(status=Order.OrderStatus.CANCELLED.value),
+            created_at__gte=last_week,
+        )
+        if len(queryset) < 0:
+            return Response(
+                status=status.HTTP_204_NO_CONTENT, data={"message": "nothing founded"}
+            )
+
+        serializer = self.serializer_class(
+            queryset, many=True, context={"request": request}
+        )
+        return Response(serializer.data)
