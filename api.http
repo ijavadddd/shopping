@@ -25,12 +25,12 @@ GET http://127.0.0.1:8000/api/product/v1/list/?weight=10kg
 
 ### Get Orders (Requires Authentication)
 GET http://127.0.0.1:8000/api/order/v1/
-Authorization: Token 50721b8673fb8d4a9d9933fa966d7ba5a63b73fc
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU1NzU2OTgwLCJpYXQiOjE3NTUzMjQ5ODAsImp0aSI6ImI2YzBhYjJkMTRjMzQyYjlhYTNhZTE3ZjZiNTFiZWI5IiwidXNlcl9pZCI6M30.VGEIer0o8zEaIFLlYdOxx127vEhPHCBOfDx0uS4sRDs
 Accept: application/json
 
 ### Create Order (Requires Authentication)
 POST http://127.0.0.1:8000/api/order/v1/
-Authorization: Token 50721b8673fb8d4a9d9933fa966d7ba5a63b73fc
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU1NzU2OTgwLCJpYXQiOjE3NTUzMjQ5ODAsImp0aSI6ImI2YzBhYjJkMTRjMzQyYjlhYTNhZTE3ZjZiNTFiZWI5IiwidXNlcl9pZCI6M30.VGEIer0o8zEaIFLlYdOxx127vEhPHCBOfDx0uS4sRDs
 Content-Type: application/json
 Accept: application/json
 
@@ -46,7 +46,7 @@ Accept: application/json
     ],
     "payments": [
       {
-        "amount": "60000.00",
+        "amount": "500",
         "payment_method": "gateway",
         "transaction_id": "7398909987",
         "status": "pending",
@@ -60,7 +60,7 @@ Accept: application/json
       "shipped_at": "2025-04-30T06:03:29Z",
       "delivered_at": null
     },
-    "order_number": "988446464",
+    "order_number": "3242343242",
     "status": "pending",
     "shipping_address": "tehran, iran",
     "billing_address": "karaj, Iran",

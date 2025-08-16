@@ -29,6 +29,9 @@ from datetime import date, timedelta
 from collections import defaultdict
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncDate
+import logging
+
+logger = logging.getLogger("django")
 
 
 class OrderAPIViewSet(ModelViewSet):
@@ -77,6 +80,14 @@ class OrderAPIViewSet(ModelViewSet):
             queryset = queryset.prefetch_related(*prefetch_args)
 
         return queryset.select_related("shipping", "user")
+
+    def list(self, request, *args, **kwargs):
+        import time
+
+        # time.sleep()
+        print("testsssssssssss")
+        logger.warning("test me")
+        return super().list(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

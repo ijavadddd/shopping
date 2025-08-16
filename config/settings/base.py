@@ -5,6 +5,10 @@ from pathlib import Path
 
 import environ
 from datetime import timedelta
+import logging
+from concurrent_log_handler import ConcurrentRotatingFileHandler
+import os
+import json
 
 
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
@@ -156,9 +160,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    # local
+    "config.middleware_logs.RequestIDMiddleware",
     # third party
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 # STATIC
@@ -262,22 +267,79 @@ DJANGO_ADMIN_FORCE_ALLAUTH = env.bool("DJANGO_ADMIN_FORCE_ALLAUTH", default=Fals
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
 # See https://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "verbose": {
-            "format": "%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s",
+        "simple": {"format": "[%(levelname)s] %(name)s %(request_id)s: %(message)s"},
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "fmt": "%(asctime)s %(levelname)s %(name)s %(message)s %(request_id)s %(duration)s %(headers)s",
+        },
+    },
+    "filters": {
+        "request_id": {"()": "config.log_config.RequestIDFilter"},
+        "health_check": {
+            "()": "config.log_config.HealthcheckFilter",
+        },
+        "redact_pii": {
+            "()": "config.log_config.RedactPIIFilter",
         },
     },
     "handlers": {
-        "console": {
-            "level": "DEBUG",
+        # --- Django handlers ---
+        "django_file": {
+            "level": "INFO",
+            "class": "logging.handlers.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "django.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 2,
+            "formatter": "json",
+        },
+        "django_stream": {
+            "level": "INFO",
             "class": "logging.StreamHandler",
-            "formatter": "verbose",
+            "formatter": "json",
+            "filters": ["request_id", "health_check", "redact_pii"],
+        },
+        # --- Celery handlers ---
+        "celery_file": {
+            "level": "INFO",
+            "class": "logging.handlers.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "celery.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "json",
+        },
+        # --- General app handlers ---
+        "app_file": {
+            "level": "INFO",
+            "class": "logging.handlers.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "app.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "json",
         },
     },
-    "root": {"level": "INFO", "handlers": ["console"]},
+    "loggers": {
+        "django": {
+            "handlers": ["django_file", "django_stream"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "celery": {
+            "handlers": ["celery_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["django_stream"],
+        "level": "WARNING",
+    },
 }
 
 REDIS_URL = env("REDIS_URL", default="redis://redis:6379/0")

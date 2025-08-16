@@ -49,7 +49,6 @@ class DashboardTableAPI(APIView):
             {field.name: getattr(obj, field.name) for field in Model._meta.fields}
             for obj in result_page
         ]
-        print(data)
         serializer = serializer(qs, many=True)
         return Response(serializer.data)
 

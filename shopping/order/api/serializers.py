@@ -15,7 +15,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         exclude = ("order",)
         extra_kwargs = {
-            "amount": {"read_only": True},
+            # "amount": {"read_only": True},
             "transaction_id": {"read_only": True},
         }
 
