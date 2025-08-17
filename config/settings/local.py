@@ -3,6 +3,9 @@ from .base import *  # noqa: F403
 from .base import INSTALLED_APPS
 from .base import MIDDLEWARE
 from .base import env
+import os
+from rich.logging import RichHandler
+
 
 # GENERAL
 # ------------------------------------------------------------------------------
@@ -72,3 +75,83 @@ INSTALLED_APPS += [
 # Your stuff...
 # ------------------------------------------------------------------------------
 CORS_ALLOW_ALL_ORIGINS = True
+
+LOCAL_LOG_DIR = os.path.join(LOG_DIR, "local")
+os.makedirs(LOCAL_LOG_DIR, exist_ok=True)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "rich": {
+            "format": "[%(levelname)s] %(asctime)s - %(name)s: request_id: *%(request_id)s* duration: '%(duration)s', agent: '%(user_agent)s', ip: %(ip)s, %(message)s",
+        },
+        # JSON formatter (files / prod)
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "fmt": "%(asctime)s %(levelname)s %(name)s %(request_id)s %(duration)s %(user_agent)s %(ip)s, %(message)s",
+        },
+    },
+    "filters": {
+        "request_id": {"()": "config.log_config.RequestIDFilter"},
+        "health_check": {"()": "config.log_config.HealthcheckFilter"},
+        "redact_pii": {"()": "config.log_config.RedactPIIFilter"},
+    },
+    "handlers": {
+        # --- Django handlers ---
+        "django_file": {
+            "level": "INFO",
+            "class": "logging.handlers.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(LOCAL_LOG_DIR, "django.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 2,
+            "formatter": "json",
+            "filters": ["request_id", "health_check", "redact_pii"],
+        },
+        "django_stream": {
+            "level": "DEBUG",  # show all in dev console
+            "class": "rich.logging.RichHandler",
+            "formatter": "rich",
+            "filters": ["request_id", "health_check", "redact_pii"],
+            "rich_tracebacks": True,  # pretty + colored tracebacks
+            "markup": True,  # allow [red]text[/red] inside logs
+            "show_time": True,
+            "show_level": True,
+            "show_path": True,
+        },
+        # --- Celery handlers ---
+        "celery_file": {
+            "level": "INFO",
+            "class": "logging.handlers.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(LOCAL_LOG_DIR, "celery.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "json",
+        },
+        # --- General app handlers ---
+        "app_file": {
+            "level": "INFO",
+            "class": "logging.handlers.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(LOCAL_LOG_DIR, "app.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "json",
+        },
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["django_file", "django_stream"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "celery": {
+            "handlers": ["celery_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+    "root": {
+        "handlers": ["django_stream"],
+        "level": "WARNING",
+    },
+}

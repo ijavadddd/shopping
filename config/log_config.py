@@ -1,12 +1,13 @@
 import logging
-from config.middleware_logs import request_id_ctx, duration_ctx, headers_ctx
+from config.middleware_logs import request_id_ctx, duration_ctx, user_agent_ctx, ip_ctx
 
 
 class RequestIDFilter(logging.Filter):
     def filter(self, record):
         record.request_id = request_id_ctx.get()
         record.duration = duration_ctx.get()
-        record.headers = headers_ctx.get()
+        record.user_agent = user_agent_ctx.get()
+        record.ip = ip_ctx.get()
         return True
 
 

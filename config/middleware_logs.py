@@ -2,10 +2,13 @@ import uuid
 import time
 from contextvars import ContextVar
 from django.utils.deprecation import MiddlewareMixin
+from django_user_agents.utils import get_user_agent
+from ipware import get_client_ip
 
 request_id_ctx = ContextVar("request_id", default="-")
 duration_ctx = ContextVar("duration", default="-")
-headers_ctx = ContextVar("headers", default="-")
+user_agent_ctx = ContextVar("user_agent", default="-")
+ip_ctx = ContextVar("ip", default="-")
 
 
 def redact_pii(data):
@@ -27,8 +30,10 @@ class RequestIDMiddleware(MiddlewareMixin):
     def __call__(self, request):
         start_time = time.time()
         request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
-        headers_ctx.set(redact_pii(request.headers))
         request_id_ctx.set(request_id)
+        user_agent_ctx.set(str(get_user_agent(request)).replace(" ", ""))
+        client_ip, _ = get_client_ip(request)
+        ip_ctx.set(str(client_ip))
         # Process request
         response = self.get_response(request)
         # Calculate duration in milliseconds

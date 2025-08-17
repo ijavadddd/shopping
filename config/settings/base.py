@@ -91,6 +91,7 @@ THIRD_PARTY_APPS = [
     "django_filters",
     "minio_storage",
     "mptt",
+    "django_user_agents",
 ]
 
 LOCAL_APPS = [
@@ -164,6 +165,8 @@ MIDDLEWARE = [
     "config.middleware_logs.RequestIDMiddleware",
     # third party
     "django.middleware.security.SecurityMiddleware",
+    "django_user_agents.middleware.UserAgentMiddleware",
+    "request_logging.middleware.LoggingMiddleware",
 ]
 
 # STATIC
@@ -262,11 +265,13 @@ MANAGERS = ADMINS
 # Force the `admin` sign in process to go through the `django-allauth` workflow
 DJANGO_ADMIN_FORCE_ALLAUTH = env.bool("DJANGO_ADMIN_FORCE_ALLAUTH", default=False)
 
+
 # LOGGING
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#logging
 # See https://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
+
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
 
@@ -274,10 +279,12 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "simple": {"format": "[%(levelname)s] %(name)s %(request_id)s: %(message)s"},
+        "simple": {
+            "format": "[%(levelname)s] %(asctime)s - %(name)s: request_id: *%(request_id)s* duration: '%(duration)s', agent: '%(user_agent)s', ip: %(ip)s, %(message)s",
+        },
         "json": {
             "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
-            "fmt": "%(asctime)s %(levelname)s %(name)s %(message)s %(request_id)s %(duration)s %(headers)s",
+            "fmt": "%(asctime)s %(levelname)s %(name)s %(request_id)s %(duration)s %(user_agent)s %(ip)s, %(message)s",
         },
     },
     "filters": {
@@ -298,6 +305,7 @@ LOGGING = {
             "maxBytes": 10 * 1024 * 1024,
             "backupCount": 2,
             "formatter": "json",
+            "filters": ["request_id", "health_check", "redact_pii"],
         },
         "django_stream": {
             "level": "INFO",
