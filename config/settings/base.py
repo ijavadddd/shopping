@@ -307,6 +307,15 @@ LOGGING = {
             "formatter": "json",
             "filters": ["request_id", "health_check", "redact_pii"],
         },
+        "selector": {
+            "level": "INFO",
+            "class": "logging.handlers.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(LOG_DIR, "selector.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 2,
+            "formatter": "json",
+            "filters": ["request_id", "redact_pii"],
+        },
         "django_stream": {
             "level": "INFO",
             "class": "logging.StreamHandler",
@@ -340,6 +349,11 @@ LOGGING = {
         },
         "celery": {
             "handlers": ["celery_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "selector": {
+            "handlers": ["selector", "django_stream"],
             "level": "INFO",
             "propagate": False,
         },

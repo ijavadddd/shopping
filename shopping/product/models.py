@@ -48,6 +48,7 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     vendor = models.ForeignKey(User, related_name="products", on_delete=models.CASCADE)
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.0)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name

@@ -9,6 +9,10 @@ from shopping.product.models import AttributeValue
 from shopping.product.models import ProductVariation, ProductAttribute
 from shopping.users.models import User
 from shopping.users.api.serializers import UserSerializer
+import logging
+
+
+logger = logging.getLogger("django")
 
 
 class ProductReviewSerializer(serializers.ModelSerializer):
@@ -120,12 +124,13 @@ class ProductListSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         # Use prefetched data if available, otherwise fallback to query
         try:
-            image = (
-                getattr(obj, "_prefetched_objects_cache", {}).get("images", {}).first()
-            )
+            image = getattr(obj, "image", None)
+            logger.info(f"thia is {image}")
 
             if image is None:
                 image = obj.images.order_by("-is_featured").first()
+            else:
+                return request.build_absolute_uri(image) if request else image.image.url
             if image.image and hasattr(image.image, "url"):
                 return (
                     request.build_absolute_uri(image.image.url)
@@ -133,6 +138,11 @@ class ProductListSerializer(serializers.ModelSerializer):
                     else image.image.url
                 )
         except Exception as e:
+            logger.error(
+                "unexpected error happend while serializing product image: {0}".format(
+                    e
+                )
+            )
             return None
 
 

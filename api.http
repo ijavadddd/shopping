@@ -38,7 +38,7 @@ Accept: application/json
     "items": [
       {
         "id": 1,
-        "product": 1,
+ +       "product": 1,
         "quantity": 1,
         "price": "80000.00",
         "variation": 1

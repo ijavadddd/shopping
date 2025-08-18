@@ -86,11 +86,6 @@ LOGGING = {
         "rich": {
             "format": "[%(levelname)s] %(asctime)s - %(name)s: request_id: *%(request_id)s* duration: '%(duration)s', agent: '%(user_agent)s', ip: %(ip)s, %(message)s",
         },
-        # JSON formatter (files / prod)
-        "json": {
-            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
-            "fmt": "%(asctime)s %(levelname)s %(name)s %(request_id)s %(duration)s %(user_agent)s %(ip)s, %(message)s",
-        },
     },
     "filters": {
         "request_id": {"()": "config.log_config.RequestIDFilter"},
@@ -105,8 +100,17 @@ LOGGING = {
             "filename": os.path.join(LOCAL_LOG_DIR, "django.log"),
             "maxBytes": 10 * 1024 * 1024,
             "backupCount": 2,
-            "formatter": "json",
+            "formatter": "rich",
             "filters": ["request_id", "health_check", "redact_pii"],
+        },
+        "selector": {
+            "level": "INFO",
+            "class": "logging.handlers.ConcurrentRotatingFileHandler",
+            "filename": os.path.join(LOCAL_LOG_DIR, "selector.log"),
+            "maxBytes": 10 * 1024 * 1024,
+            "backupCount": 2,
+            "formatter": "rich",
+            "filters": ["request_id", "redact_pii"],
         },
         "django_stream": {
             "level": "DEBUG",  # show all in dev console
@@ -126,7 +130,7 @@ LOGGING = {
             "filename": os.path.join(LOCAL_LOG_DIR, "celery.log"),
             "maxBytes": 10 * 1024 * 1024,
             "backupCount": 5,
-            "formatter": "json",
+            "formatter": "rich",
         },
         # --- General app handlers ---
         "app_file": {
@@ -135,7 +139,7 @@ LOGGING = {
             "filename": os.path.join(LOCAL_LOG_DIR, "app.log"),
             "maxBytes": 10 * 1024 * 1024,
             "backupCount": 5,
-            "formatter": "json",
+            "formatter": "rich",
         },
     },
     "loggers": {
@@ -149,9 +153,14 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "selector": {
+            "handlers": ["selector", "django_stream"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
     "root": {
         "handlers": ["django_stream"],
-        "level": "WARNING",
+        "level": "INFO",
     },
 }
