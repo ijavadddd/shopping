@@ -13,7 +13,7 @@ from shopping.product.models import Review
 from shopping.product.models import ProductVariation, ProductAttribute
 from django_filters import rest_framework as filters
 from shopping.product.filters import ProductFilter
-from shopping.product.selectors import product_list
+from shopping.product.selectors import product_list, product_detail
 
 
 class ProductListAPIView(ListAPIView):
@@ -27,21 +27,7 @@ class ProductListAPIView(ListAPIView):
 
 
 class ProductRetrieveAPIView(RetrieveAPIView):
-    queryset = Product.objects.prefetch_related(
-        Prefetch("attributes", queryset=ProductAttribute.objects.all()),
-        "category",
-        Prefetch(
-            "images",
-            queryset=ProductImage.objects.order_by("-is_featured"),
-        ),
-        Prefetch(
-            "variations",
-            queryset=ProductVariation.objects.order_by("price_modifier"),
-        ),
-        "attributes__attribute",
-        "attributes__attribute__attribute_type",
-        "reviews__user",
-    ).select_related("vendor")
+    queryset = product_detail()
     serializer_class = ProductSerializer
     lookup_field = "pk"
 

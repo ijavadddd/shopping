@@ -164,3 +164,15 @@ LOGGING = {
         "level": "INFO",
     },
 }
+
+SILKY_META = True
+SILKY_AUTHENTICATION = True  # User must login
+SILKY_AUTHORISATION = True
+
+# profiling functions
+SILKY_DYNAMIC_PROFILING = [
+    {
+        "module": "shopping.product.api.views",
+        "function": "ProductListAPIView.get_queryset",
+    }
+]
