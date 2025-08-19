@@ -181,6 +181,7 @@ dependencies = [
     "pyyaml>=6.0.2",
     "redis>=5.2.1",
     "rich>=14.1.0",
+    "sentry-sdk[django]>=2.35.0",
     "ua-parser>=1.0.1",
     "user-agents>=2.2.0",
     "uvicorn-worker>=0.3.0",

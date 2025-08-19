@@ -14,6 +14,12 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+
+def trigger_error(request):
+    """this is a simple function to trigger error to check sentry functionality"""
+    division_by_zero = 1 / 0
+
+
 urlpatterns = [
     path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
     path(
@@ -77,6 +83,7 @@ if settings.DEBUG:
             kwargs={"exception": Exception("Page not Found")},
         ),
         path("500/", default_views.server_error),
+        path("sentry-debug/", trigger_error),
     ]
     if "debug_toolbar" in settings.INSTALLED_APPS:
         import debug_toolbar
